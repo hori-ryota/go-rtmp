@@ -1,0 +1,9 @@
+package rtmp
+
+//go:generate go run $DEFDIR/go/cmd/genbinary/genbinary.go -package rtmp -toml $DEFDIR/message/user_control_message/event.toml -toml $DEFDIR/message/user_control_message/stream_begin.toml -toml $DEFDIR/message/user_control_message/stream_eof.toml -toml $DEFDIR/message/user_control_message/stream_dry.toml -toml $DEFDIR/message/user_control_message/set_buffer_length.toml -toml $DEFDIR/message/user_control_message/stream_is_recorded.toml -toml $DEFDIR/message/user_control_message/ping_request.toml -toml $DEFDIR/message/user_control_message/ping_response.toml -o msg_user_control_gen.go
+
+//go:generate go run $DEFDIR/go/cmd/genhandler/genhandler.go -package rtmp -name UserControlEventHandler -toml $DEFDIR/message/user_control_message/event.toml -toml $DEFDIR/message/user_control_message/stream_begin.toml -toml $DEFDIR/message/user_control_message/stream_eof.toml -toml $DEFDIR/message/user_control_message/stream_dry.toml -toml $DEFDIR/message/user_control_message/set_buffer_length.toml -toml $DEFDIR/message/user_control_message/stream_is_recorded.toml -toml $DEFDIR/message/user_control_message/ping_request.toml -toml $DEFDIR/message/user_control_message/ping_response.toml -o msg_user_control_handler_gen.go
+
+//go:generate go run $DEFDIR/go/cmd/genexector/genexecutor.go -package rtmp -name UserController -toml $DEFDIR/message/user_control_message/event.toml -toml $DEFDIR/message/user_control_message/stream_begin.toml -toml $DEFDIR/message/user_control_message/stream_eof.toml -toml $DEFDIR/message/user_control_message/stream_dry.toml -toml $DEFDIR/message/user_control_message/set_buffer_length.toml -toml $DEFDIR/message/user_control_message/stream_is_recorded.toml -toml $DEFDIR/message/user_control_message/ping_request.toml -toml $DEFDIR/message/user_control_message/ping_response.toml -o user_controller_gen.go
+
+//go:generate stringer -type EventType -trimprefix EventType -output msg_user_control_event_type_string_gen.go
