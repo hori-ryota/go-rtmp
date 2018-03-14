@@ -43,14 +43,14 @@ func (conn *defaultConn) OnConnect(ctx context.Context, connect Connect) {
 }
 
 func (conn *defaultConn) OnConnectResult(ctx context.Context, connectResult ConnectResult) {
-	conn.Logger().Warn(
+	conn.Logger().Debug(
 		"OnConnectResult is not implemented",
 		zap.Object("connectResult", connectResult),
 	)
 }
 
 func (conn *defaultConn) OnConnectError(ctx context.Context, connectError ConnectError) {
-	conn.Logger().Warn(
+	conn.Logger().Debug(
 		"OnConnectError is not implemented",
 		zap.Object("connectError", connectError),
 	)
@@ -58,7 +58,7 @@ func (conn *defaultConn) OnConnectError(ctx context.Context, connectError Connec
 
 func (conn *defaultConn) OnCall(ctx context.Context, call Call) {
 	conn.Logger().Info(
-		"invoke OnCall",
+		"OnCall",
 		zap.Object("call", call),
 	)
 }
@@ -89,15 +89,23 @@ func (conn *defaultConn) OnCreateStream(ctx context.Context, createStream Create
 }
 
 func (conn *defaultConn) OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult) {
-	conn.Logger().Warn(
-		"OnCreateStreamResult is not implemented",
+	conn.Logger().Info(
+		"OnCreateStreamResult",
 		zap.Object("createStreamResult", createStreamResult),
 	)
+	if f, ok := conn.createStreamCallbacks[createStreamResult.TransactionID()]; ok {
+		f(createStreamResult)
+	}
+	delete(conn.createStreamCallbacks, createStreamResult.TransactionID())
 }
 
 func (conn *defaultConn) OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError) {
-	conn.Logger().Warn(
-		"OnCreateStreamError is not implemented",
+	conn.Logger().Info(
+		"OnCreateStreamError",
 		zap.Object("createStreamError", createStreamError),
 	)
+	if f, ok := conn.createStreamCallbacks[createStreamError.TransactionID()]; ok {
+		f(createStreamError)
+	}
+	delete(conn.createStreamCallbacks, createStreamError.TransactionID())
 }

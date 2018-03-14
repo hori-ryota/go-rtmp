@@ -32,8 +32,9 @@ type defaultReader struct {
 	sequenceNumber               uint32
 }
 
-func NewDefaultReader(r io.Reader) Reader {
+func NewDefaultReader(conn Conn, r io.Reader) Reader {
 	return &defaultReader{
+		conn:         conn,
 		r:            bufio.NewReader(r),
 		chunkSize:    128, /* default RTMP Chunk size */
 		chunkStreams: map[uint32]chunkStream{},
@@ -61,7 +62,9 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 			cs.messageStreamID = mh.MessageStreamID()
 			cs.timestampDelta = 0
 			cs.timestamp = mh.Timestamp()
-			cs.buffer = make([]byte, cs.messageLength)
+			if uint32(len(cs.buffer)) < cs.messageLength {
+				cs.buffer = make([]byte, cs.messageLength)
+			}
 			if y.acknowledgementWindowSize > 0 {
 				y.sequenceNumber += 11
 			}
@@ -70,7 +73,9 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 			cs.messageTypeID = mh.MessageTypeID()
 			cs.timestampDelta = mh.TimestampDelta()
 			cs.timestamp += cs.timestampDelta
-			cs.buffer = make([]byte, cs.messageLength)
+			if uint32(len(cs.buffer)) < cs.messageLength {
+				cs.buffer = make([]byte, cs.messageLength)
+			}
 			if y.acknowledgementWindowSize > 0 {
 				y.sequenceNumber += 7
 			}
@@ -102,7 +107,7 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 				cs.messageTypeID,
 				cs.timestamp,
 				cs.messageStreamID,
-				cs.buffer,
+				cs.buffer[:cs.messageLength],
 			)
 			cs.buffered = 0
 			y.chunkStreams[csID] = cs
@@ -126,7 +131,7 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 				cs.messageTypeID,
 				cs.timestamp,
 				cs.messageStreamID,
-				cs.buffer,
+				cs.buffer[:cs.messageLength],
 			)
 			cs.buffered = 0
 			y.chunkStreams[csID] = cs

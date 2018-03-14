@@ -7,43 +7,43 @@ import (
 )
 
 func (conn *defaultConn) OnStreamBegin(ctx context.Context, streamBegin StreamBegin) {
-	conn.Logger().Warn(
-		"OnStreamBegin is not implemented",
+	conn.Logger().Debug(
+		"OnStreamBegin",
 		zap.Object("streamBegin", streamBegin),
 	)
 }
 
 func (conn *defaultConn) OnStreamEOF(ctx context.Context, streamEOF StreamEOF) {
-	conn.Logger().Warn(
-		"OnStreamEOF is not implemented",
+	conn.Logger().Debug(
+		"OnStreamEOF",
 		zap.Object("streamEOF", streamEOF),
 	)
 }
 
 func (conn *defaultConn) OnStreamDry(ctx context.Context, streamDry StreamDry) {
-	conn.Logger().Warn(
-		"OnStreamDry is not implemented",
+	conn.Logger().Debug(
+		"OnStreamDry",
 		zap.Object("streamDry", streamDry),
 	)
 }
 
 func (conn *defaultConn) OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength) {
-	conn.Logger().Warn(
-		"OnSetBufferLength is not implemented",
+	conn.Logger().Debug(
+		"OnSetBufferLength",
 		zap.Object("setBufferLength", setBufferLength),
 	)
 }
 
 func (conn *defaultConn) OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded) {
-	conn.Logger().Warn(
-		"OnStreamIsRecorded is not implemented",
+	conn.Logger().Debug(
+		"OnStreamIsRecorded",
 		zap.Object("streamIsRecorded", streamIsRecorded),
 	)
 }
 
 func (conn *defaultConn) OnPingRequest(ctx context.Context, pingRequest PingRequest) {
 	conn.Logger().Debug(
-		"invoke OnPingRequest",
+		"OnPingRequest",
 		zap.Object("pingRequest", pingRequest),
 	)
 	if err := conn.PingResponse(ctx, pingRequest.Timestamp()); err != nil {
@@ -56,8 +56,8 @@ func (conn *defaultConn) OnPingRequest(ctx context.Context, pingRequest PingRequ
 }
 
 func (conn *defaultConn) OnPingResponse(ctx context.Context, pingResponse PingResponse) {
-	conn.Logger().Warn(
-		"OnPingResponse is not implemented",
+	conn.Logger().Debug(
+		"OnPingResponse",
 		zap.Object("pingResponse", pingResponse),
 	)
 }

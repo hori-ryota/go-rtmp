@@ -17,13 +17,15 @@ type Writer interface {
 type writer Writer
 
 type defaultWriter struct {
+	conn         Conn
 	w            *bufio.Writer
 	chunkSize    uint32
 	chunkStreams map[ /* chunkStreamID */ uint32]chunkStream
 }
 
-func NewDefaultWriter(w io.Writer) Writer {
+func NewDefaultWriter(conn Conn, w io.Writer) Writer {
 	return &defaultWriter{
+		conn:         conn,
 		w:            bufio.NewWriter(w),
 		chunkSize:    128, /* default RTMP Chunk size */
 		chunkStreams: map[uint32]chunkStream{},
@@ -39,9 +41,12 @@ func (w *defaultWriter) Flush() error {
 }
 
 func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
+	// w.conn.Logger().Debug("WriteMessage", zap.Object("message", m))
 
 	csID := m.ChunkStreamID()
-	cs, isFirst := w.chunkStreams[csID]
+	cs := w.chunkStreams[csID]
+	isNotFirst := cs.isNotFirst
+	cs.isNotFirst = true
 
 	p := m.Payload()
 
@@ -51,7 +56,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 	messageLength := uint32(len(p))
 	timestampDelta := m.Timestamp() - cs.timestamp
 	switch {
-	case isFirst || cs.messageStreamID != m.StreamID(): // type 0
+	case !isNotFirst || cs.messageStreamID != m.StreamID(): // type 0
 		cs.messageLength = messageLength
 		cs.messageTypeID = m.TypeID()
 		cs.messageStreamID = m.StreamID()
@@ -122,28 +127,19 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 	}
 	n += nn
 
+	h = NewChunkHeader(
+		GenerateChunkBasicHeader(3, csID),
+		NewChunkMessageHeaderType3(),
+		0,
+	)
 	remain := p[w.chunkSize:]
 
 	for len(remain) > 0 {
-		if cs.timestampDelta != 0 {
-			cs.timestampDelta = 0
-			format = 2
-			mh = NewChunkMessageHeaderType2(cs.timestampDelta)
-		} else {
-			format = 3
-			mh = NewChunkMessageHeaderType3()
-		}
-		h := NewChunkHeader(
-			GenerateChunkBasicHeader(format, csID),
-			mh,
-			0,
-		)
-
 		l := int(w.chunkSize)
 		if l > len(remain) {
 			l = len(remain)
 		}
-		b, err := NewChunk(h, p[:l]).MarshalBinary()
+		b, err := NewChunk(h, remain[:l]).MarshalBinary()
 		if err != nil {
 			return 0, errors.Wrap(err, "failed to marshal chunk")
 		}
@@ -153,7 +149,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 		}
 		n += nn
 
-		remain = p[l:]
+		remain = remain[l:]
 	}
 
 	return n, nil

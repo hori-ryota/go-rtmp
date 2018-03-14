@@ -161,7 +161,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				return
 			}
 			h.conn.OnClose(ctx, p)
-		case "_result", "error":
+		case "_result", "_error":
 			var transactionID float64
 			if encodingAMFType == EncodingAMFTypeAMF0 {
 				transactionID, err = amf.ReadDouble(r)
@@ -214,70 +214,70 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				h.Error("failed to unmarshal OnStatus", m, err)
 				return
 			}
-			h.conn.OnOnStatus(ctx, p)
+			h.conn.OnOnStatus(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play":
 			p, err := UnmarshalPlayBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal Play", m, err)
 				return
 			}
-			h.conn.OnPlay(ctx, p)
+			h.conn.OnPlay(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play2":
 			p, err := UnmarshalPlay2Binary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal Play2", m, err)
 				return
 			}
-			h.conn.OnPlay2(ctx, p)
+			h.conn.OnPlay2(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "deleteStream":
 			p, err := UnmarshalDeleteStreamBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal DeleteStream", m, err)
 				return
 			}
-			h.conn.OnDeleteStream(ctx, p)
+			h.conn.OnDeleteStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "closeStream":
 			p, err := UnmarshalCloseStreamBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal CloseStream", m, err)
 				return
 			}
-			h.conn.OnCloseStream(ctx, p)
+			h.conn.OnCloseStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveAudio":
 			p, err := UnmarshalReceiveAudioBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal ReceiveAudio", m, err)
 				return
 			}
-			h.conn.OnReceiveAudio(ctx, p)
+			h.conn.OnReceiveAudio(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveVideo":
 			p, err := UnmarshalReceiveVideoBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal ReceiveVideo", m, err)
 				return
 			}
-			h.conn.OnReceiveVideo(ctx, p)
+			h.conn.OnReceiveVideo(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "publish":
 			p, err := UnmarshalPublishBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal Publish", m, err)
 				return
 			}
-			h.conn.OnPublish(ctx, p)
+			h.conn.OnPublish(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "seek":
 			p, err := UnmarshalSeekBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal Seek", m, err)
 				return
 			}
-			h.conn.OnSeek(ctx, p)
+			h.conn.OnSeek(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "pause":
 			p, err := UnmarshalPauseBinary(b, encodingAMFType)
 			if err != nil {
 				h.Error("failed to unmarshal Pause", m, err)
 				return
 			}
-			h.conn.OnPause(ctx, p)
+			h.conn.OnPause(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		default:
 			h.Error("not implemented command", m, err)
 			p, err := UnmarshalCallBinary(b, encodingAMFType)

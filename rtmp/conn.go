@@ -14,6 +14,7 @@ import (
 type Conn interface {
 	Serve() error
 	io.Closer
+	Context() context.Context
 
 	Reader() Reader
 	SetReader(r Reader)
@@ -31,6 +32,10 @@ type Conn interface {
 	NetConnectionCommandHandler
 	NetStreamCommander
 	NetStreamCommandHandler
+
+	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse))
+	AddNetstreamCommandCallbacks(func(OnStatus))
+	TransactionID() uint32
 
 	Logger() *zap.Logger
 }
@@ -52,6 +57,9 @@ type defaultConn struct {
 
 	messagePubsub
 
+	createStreamCallbacks     map[uint32] /* transactionID */ func(CreateStreamResponse)
+	netStreamCommandCallbacks []func(onStatus OnStatus)
+
 	logger *zap.Logger
 }
 
@@ -68,14 +76,17 @@ func NewDefaultConn(
 		cancelFunc:                cancel,
 		conn:                      nc,
 		handshaker:                handshake.NewDefaultHandshaker(isServer),
-		reader:                    NewDefaultReader(nc),
-		writer:                    NewDefaultWriter(nc),
 		encodingAMFType:           defaultEncodingAMFType,
 		bandwidthLimitType:        defaultBandwidthLimitType,
 		windowAcknowledgementSize: defaultWindowAcknowledgementSize,
 		messagePubsub:             NewDefaultMessagePubsub(),
-		logger:                    logger,
+
+		createStreamCallbacks: map[uint32]func(CreateStreamResponse){},
+
+		logger: logger,
 	}
+	conn.reader = NewDefaultReader(conn, nc)
+	conn.writer = NewDefaultWriter(conn, nc)
 	for _, f := range connInitializers {
 		f(conn)
 	}
@@ -142,4 +153,29 @@ func (conn *defaultConn) Logger() *zap.Logger {
 
 func (conn *defaultConn) Timestamp() uint32 {
 	return uint32(time.Since(conn.timestampPoint) / time.Millisecond)
+}
+
+func (conn *defaultConn) Context() context.Context {
+	return conn.ctx
+}
+
+func (conn *defaultConn) SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse)) {
+	conn.createStreamCallbacks[transactionID] = f
+}
+
+func (conn *defaultConn) AddNetstreamCommandCallbacks(f func(OnStatus)) {
+	conn.netStreamCommandCallbacks = append(conn.netStreamCommandCallbacks, f)
+}
+
+func (conn *defaultConn) TransactionID() uint32 {
+	for i := uint32(2); true; i++ {
+		if _, ok := conn.createStreamCallbacks[i]; !ok {
+			conn.createStreamCallbacks[i] = func(_ CreateStreamResponse) {
+				// noop
+			}
+			return i
+		}
+	}
+	// dummy
+	return 0
 }

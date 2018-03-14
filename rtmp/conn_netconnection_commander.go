@@ -4,10 +4,39 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 func (conn *defaultConn) Connect(ctx context.Context, commandObject map[string]interface{}, optionalUserArguments map[string]interface{}) error {
-	panic("not implemented")
+	p := NewConnect(commandObject, optionalUserArguments, conn.encodingAMFType)
+	b, err := p.MarshalBinary()
+	if err != nil {
+		return errors.Wrap(err, "failed to MarshalBinary")
+	}
+	var msgTypeID MessageTypeID
+	if conn.encodingAMFType == EncodingAMFTypeAMF0 {
+		msgTypeID = MessageTypeIDCommandAMF0
+	} else {
+		msgTypeID = MessageTypeIDCommandAMF3
+	}
+
+	m := NewMessage(
+		3,
+		msgTypeID,
+		conn.Timestamp(),
+		0,
+		b,
+	)
+	conn.Logger().Info("Connect", zap.Object("connect", p))
+	conn.Logger().Info("Connect", zap.Object("message", m))
+	_, err = conn.Writer().WriteMessage(m)
+	if err != nil {
+		return errors.Wrap(err, "failed to WriteMessage")
+	}
+	if err := conn.Writer().Flush(); err != nil {
+		return errors.Wrap(err, "failed to Flush Writer")
+	}
+	return nil
 }
 
 func (conn *defaultConn) ConnectResult(ctx context.Context, properties map[string]interface{}, information map[string]interface{}) error {

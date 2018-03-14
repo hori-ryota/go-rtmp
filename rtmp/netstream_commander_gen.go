@@ -7,14 +7,14 @@ import (
 )
 
 type NetStreamCommander interface {
-	OnStatus(ctx context.Context, infoObject map[string]interface{}) error
-	Play(ctx context.Context, streamName string, start uint32, duration uint32, reset bool) error
-	Play2(ctx context.Context, parameters map[string]interface{}) error
-	DeleteStream(ctx context.Context, streamID uint32) error
-	CloseStream(ctx context.Context, streamID uint32) error
-	ReceiveAudio(ctx context.Context, boolFlag bool) error
-	ReceiveVideo(ctx context.Context, boolFlag bool) error
-	Publish(ctx context.Context, publishingName string, publishingType PublishingType) error
-	Seek(ctx context.Context, milliSeconds uint32) error
-	Pause(ctx context.Context, pauseUnpauseFlag bool, milliSeconds uint32) error
+	OnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, infoObject map[string]interface{}) error
+	Play(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, streamName string, start uint32, duration uint32, reset bool) error
+	Play2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, parameters map[string]interface{}) error
+	DeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, streamID uint32) error
+	CloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, streamID uint32) error
+	ReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, boolFlag bool) error
+	ReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, boolFlag bool) error
+	Publish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publishingName string, publishingType PublishingType) error
+	Seek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, milliSeconds uint32) error
+	Pause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pauseUnpauseFlag bool, milliSeconds uint32) error
 }

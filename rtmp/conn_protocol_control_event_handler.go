@@ -8,7 +8,7 @@ import (
 
 func (conn *defaultConn) OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize) {
 	conn.Logger().Debug(
-		"invoke OnSetChunkSize",
+		"OnSetChunkSize",
 		zap.Object("setChunkSize", setChunkSize),
 	)
 	conn.Reader().SetChunkSize(setChunkSize.ChunkSize())
@@ -16,7 +16,7 @@ func (conn *defaultConn) OnSetChunkSize(ctx context.Context, setChunkSize SetChu
 
 func (conn *defaultConn) OnAbortMessage(ctx context.Context, abortMessage AbortMessage) {
 	conn.Logger().Debug(
-		"invoke OnAbortMessage",
+		"OnAbortMessage",
 		zap.Object("abortMessage", abortMessage),
 	)
 	conn.Reader().AbortMessage(abortMessage.ChunkStreamID())
@@ -24,16 +24,17 @@ func (conn *defaultConn) OnAbortMessage(ctx context.Context, abortMessage AbortM
 
 func (conn *defaultConn) OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement) {
 	conn.Logger().Debug(
-		"invoke OnAcknowledgement",
+		"OnAcknowledgement",
 		zap.Object("acknowledgement", acknowledgement),
 	)
 }
 
 func (conn *defaultConn) OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) {
-	conn.Logger().Warn(
-		"OnWindowAcknowledgementSize is not implemented",
+	conn.Logger().Debug(
+		"OnWindowAcknowledgementSize",
 		zap.Object("windowAcknowledgementSize", windowAcknowledgementSize),
 	)
+	conn.Reader().SetAcknowledgementWindowSize(windowAcknowledgementSize.AcknowledgementWindowSize())
 }
 
 func (conn *defaultConn) OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth) {
