@@ -10,11 +10,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// There are four different formats for the chunk message header,
-// selected by the "fmt" field in the chunk basic header.
-//
-// An implementation SHOULD use the most compact representation possible
-// for each chunk message header.
 type ChunkMessageHeader interface {
 	encoding.BinaryMarshaler
 	zapcore.ObjectMarshaler
