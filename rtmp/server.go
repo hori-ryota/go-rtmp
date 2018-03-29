@@ -10,9 +10,9 @@ import (
 )
 
 type Server struct {
-	ctx              context.Context
-	cancelFunc       context.CancelFunc
-	connInitializers []func(c Conn)
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	connOptions []ConnOption
 
 	Addr string
 
@@ -29,14 +29,14 @@ var defaultLogger *zap.Logger = func() *zap.Logger {
 
 func NewServer(
 	ctx context.Context,
-	connInitializers ...func(Conn),
+	connOps ...ConnOption,
 ) *Server {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Server{
-		ctx:              ctx,
-		cancelFunc:       cancel,
-		connInitializers: connInitializers,
-		logger:           defaultLogger,
+		ctx:         ctx,
+		cancelFunc:  cancel,
+		connOptions: connOps,
+		logger:      defaultLogger,
 	}
 }
 
@@ -104,7 +104,7 @@ func (s *Server) Serve(l net.Listener) error {
 			nc,
 			true,
 			s.Logger(),
-			s.connInitializers...,
+			s.connOptions...,
 		)
 
 		go func() {
@@ -140,8 +140,8 @@ func (s *Server) Logger() *zap.Logger {
 	return defaultLogger
 }
 
-func ListenAndServe(ctx context.Context, addr string, connInitializers ...func(Conn)) error {
-	s := NewServer(ctx, connInitializers...)
+func ListenAndServe(ctx context.Context, addr string, connOps ...ConnOption) error {
+	s := NewServer(ctx, connOps...)
 	s.Addr = addr
 	return s.ListenAndServe()
 }

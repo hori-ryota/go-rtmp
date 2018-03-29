@@ -35,7 +35,7 @@ func Main(args []string) error {
 	return rtmp.ListenAndServe(
 		context.Background(),
 		"0.0.0.0:1935",
-		connInit,
+		rtmp.WithConnInitializers(connInit),
 	)
 }
 

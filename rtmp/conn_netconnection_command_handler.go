@@ -11,6 +11,25 @@ func (conn *defaultConn) OnConnect(ctx context.Context, connect Connect) {
 		"OnConnect",
 		zap.Object("connect", connect),
 	)
+	for _, v := range conn.onConnectValidators {
+		if onConnectError := v(ctx, connect); onConnectError != nil {
+			if err := conn.ConnectError(ctx, onConnectError.Properties(), onConnectError.Information()); err != nil {
+				conn.Logger().Error(
+					"failed to ConnectResult",
+					zap.Object("connect", connect),
+					zap.Error(err),
+				)
+			}
+			if err := conn.Close(); err != nil {
+				conn.Logger().Error(
+					"failed to Close conn when OnConnect",
+					zap.Object("connect", connect),
+					zap.Error(err),
+				)
+			}
+			return
+		}
+	}
 	if err := conn.WindowAcknowledgementSize(ctx, conn.windowAcknowledgementSize); err != nil {
 		conn.Logger().Error(
 			"failed to WindowAcknowledgementSize",
@@ -32,7 +51,6 @@ func (conn *defaultConn) OnConnect(ctx context.Context, connect Connect) {
 			zap.Error(err),
 		)
 	}
-	// TODO: auth check
 	if err := conn.ConnectResult(ctx, nil, nil); err != nil {
 		conn.Logger().Error(
 			"failed to ConnectResult",

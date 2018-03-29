@@ -9,23 +9,23 @@ import (
 )
 
 type Client struct {
-	ctx              context.Context
-	cancelFunc       context.CancelFunc
-	connInitializers []func(c Conn)
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	connOptions []ConnOption
 
 	logger *zap.Logger
 }
 
 func NewClient(
 	ctx context.Context,
-	connInitializers ...func(Conn),
+	connOps ...ConnOption,
 ) *Client {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Client{
-		ctx:              ctx,
-		cancelFunc:       cancel,
-		connInitializers: connInitializers,
-		logger:           defaultLogger,
+		ctx:         ctx,
+		cancelFunc:  cancel,
+		connOptions: connOps,
+		logger:      defaultLogger,
 	}
 }
 
@@ -50,7 +50,7 @@ func (c *Client) Connect(addr string) (Conn, error) {
 		nc,
 		false,
 		c.Logger(),
-		c.connInitializers...,
+		c.connOptions...,
 	)
 
 	go func() {

@@ -80,6 +80,30 @@ func (conn *defaultConn) OnPublish(ctx context.Context, chunkStreamID uint32, me
 		zap.Uint32("chunkStreamID", chunkStreamID),
 		zap.Uint32("messageStreamID", messageStreamID),
 	)
+	for _, v := range conn.onPublishValidators {
+		if onPublishError := v(ctx, publish); onPublishError != nil {
+			if err := conn.OnStatus(
+				ctx,
+				chunkStreamID,
+				messageStreamID,
+				onPublishError,
+			); err != nil {
+				conn.Logger().Error(
+					"failed to OnStatus",
+					zap.Object("publish", publish),
+					zap.Error(err),
+				)
+			}
+		}
+		if err := conn.Close(); err != nil {
+			conn.Logger().Error(
+				"failed to Close conn when OnPublish",
+				zap.Object("publish", publish),
+				zap.Error(err),
+			)
+		}
+		return
+	}
 	if err := conn.StreamBegin(ctx, chunkStreamID); err != nil {
 		conn.Logger().Error(
 			"failed to StreamBegin",

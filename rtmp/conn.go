@@ -60,6 +60,16 @@ type defaultConn struct {
 	createStreamCallbacks     map[uint32] /* transactionID */ func(CreateStreamResponse)
 	netStreamCommandCallbacks []func(onStatus OnStatus)
 
+	onConnectValidators []func(
+		ctx context.Context,
+		connect Connect,
+	) ConnectError
+
+	onPublishValidators []func(
+		ctx context.Context,
+		publish Publish,
+	) (errorInfo map[string]interface{})
+
 	logger *zap.Logger
 }
 
@@ -68,7 +78,7 @@ func NewDefaultConn(
 	nc net.Conn,
 	isServer bool,
 	logger *zap.Logger,
-	connInitializers ...func(Conn),
+	connOps ...ConnOption,
 ) Conn {
 	ctx, cancel := context.WithCancel(ctx)
 	conn := &defaultConn{
@@ -87,9 +97,11 @@ func NewDefaultConn(
 	}
 	conn.reader = NewDefaultReader(conn, nc)
 	conn.writer = NewDefaultWriter(conn, nc)
-	for _, f := range connInitializers {
-		f(conn)
+	ops := &connOptions{}
+	for _, o := range connOps {
+		o(ops)
 	}
+	ops.Apply(conn)
 	return conn
 }
 
