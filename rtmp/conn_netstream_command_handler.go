@@ -94,15 +94,15 @@ func (conn *defaultConn) OnPublish(ctx context.Context, chunkStreamID uint32, me
 					zap.Error(err),
 				)
 			}
+			if err := conn.Close(); err != nil {
+				conn.Logger().Error(
+					"failed to Close conn when OnPublish",
+					zap.Object("publish", publish),
+					zap.Error(err),
+				)
+			}
+			return
 		}
-		if err := conn.Close(); err != nil {
-			conn.Logger().Error(
-				"failed to Close conn when OnPublish",
-				zap.Object("publish", publish),
-				zap.Error(err),
-			)
-		}
-		return
 	}
 	if err := conn.StreamBegin(ctx, chunkStreamID); err != nil {
 		conn.Logger().Error(
