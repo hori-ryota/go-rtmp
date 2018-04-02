@@ -131,8 +131,6 @@ func (conn *defaultConn) Serve() error {
 			)
 			continue
 		}
-		ctx = SetChunkStreamIDToContext(ctx, m.ChunkStreamID())
-		ctx = SetMessageStreamIDToContext(ctx, m.StreamID())
 		conn.HandleMessage(ctx, m)
 	}
 	return ctx.Err()

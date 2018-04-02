@@ -41,7 +41,6 @@ func (w *defaultWriter) Flush() error {
 }
 
 func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
-	// w.conn.Logger().Debug("WriteMessage", zap.Object("message", m))
 
 	csID := m.ChunkStreamID()
 	cs := w.chunkStreams[csID]
@@ -78,6 +77,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 		cs.messageTypeID = m.TypeID()
 		cs.messageLength = messageLength
 		cs.timestampDelta = timestampDelta
+		cs.timestamp += timestampDelta
 		tt := cs.timestampDelta
 		if tt >= 0xffffff {
 			tt = 0xffffff
@@ -91,6 +91,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 		)
 	case cs.timestampDelta != timestampDelta: // type 2
 		cs.timestampDelta = timestampDelta
+		cs.timestamp += timestampDelta
 		tt := timestampDelta
 		if tt >= 0xffffff {
 			tt = 0xffffff
@@ -101,10 +102,10 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 			tt,
 		)
 	default: //type 3
+		cs.timestamp += timestampDelta
 		format = 3
 		mh = NewChunkMessageHeaderType3()
 	}
-	cs.timestamp += timestampDelta
 
 	bh := GenerateChunkBasicHeader(format, csID)
 	h := NewChunkHeader(bh, mh, extendedTimestamp)
@@ -114,7 +115,12 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 		if err != nil {
 			return 0, errors.Wrap(err, "failed to marshal chunk")
 		}
-		return w.Write(b)
+		n, err = w.Write(b)
+		if err != nil {
+			return 0, errors.Wrap(err, "failed to writer chunk")
+		}
+		w.chunkStreams[csID] = cs
+		return n, nil
 	}
 
 	b, err := NewChunk(h, p[:w.chunkSize]).MarshalBinary()
@@ -151,6 +157,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 
 		remain = remain[l:]
 	}
+	w.chunkStreams[csID] = cs
 
 	return n, nil
 }

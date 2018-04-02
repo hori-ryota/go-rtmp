@@ -86,7 +86,9 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 				y.sequenceNumber += 3
 			}
 		case ChunkMessageHeaderType3:
-			cs.timestamp += cs.timestampDelta
+			if cs.buffered == 0 {
+				cs.timestamp += cs.timestampDelta
+			}
 		}
 
 		if y.acknowledgementWindowSize > 0 {
@@ -120,7 +122,7 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 		}
 		b := cs.buffer[cs.buffered : cs.buffered+length]
 		if _, err := io.ReadFull(r, b); err != nil {
-			return nil, errors.Wrap(err, "failed to ReadBody")
+			return nil, errors.Wrapf(err, "failed to ReadBody: chunkStream=%+v: reader=%+v", cs, r)
 		}
 		cs.buffered += length
 		y.sequenceNumber += length
