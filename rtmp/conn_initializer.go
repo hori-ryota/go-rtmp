@@ -4,9 +4,9 @@ func GenerateCommonConnInitializer(
 	messageHandlerFactories ...func(c Conn) MessageHandler,
 ) func(c Conn) {
 	return func(c Conn) {
-		messageHandlerFactories = append(messageHandlerFactories, NewConnControllMessageHandler)
-		mhs := make([]MessageHandler, len(messageHandlerFactories))
-		for i, f := range messageHandlerFactories {
+		mhfs := append(messageHandlerFactories, NewConnControllMessageHandler)
+		mhs := make([]MessageHandler, len(mhfs))
+		for i, f := range mhfs {
 			mhs[i] = f(c)
 		}
 		c.AppendMessageHandler(mhs...)
