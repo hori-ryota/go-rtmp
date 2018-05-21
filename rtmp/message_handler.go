@@ -4,18 +4,18 @@ import (
 	"context"
 )
 
-type HandleMessage func(ctx context.Context, m Message)
+type HandleMessage func(ctx context.Context, m Message) ConnError
 
 type MessageHandler interface {
-	HandleMessage(ctx context.Context, m Message)
+	HandleMessage(ctx context.Context, m Message) ConnError
 }
 
 type abstructMessageHandler struct {
 	handleMessage HandleMessage
 }
 
-func (h abstructMessageHandler) HandleMessage(ctx context.Context, m Message) {
-	h.handleMessage(ctx, m)
+func (h abstructMessageHandler) HandleMessage(ctx context.Context, m Message) ConnError {
+	return h.handleMessage(ctx, m)
 }
 
 func HandleMessageFunc(

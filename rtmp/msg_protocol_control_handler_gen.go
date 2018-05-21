@@ -7,9 +7,9 @@ import (
 )
 
 type ProtocolControlEventHandler interface {
-	OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize)
-	OnAbortMessage(ctx context.Context, abortMessage AbortMessage)
-	OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement)
-	OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize)
-	OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth)
+	OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize) ConnError
+	OnAbortMessage(ctx context.Context, abortMessage AbortMessage) ConnError
+	OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement) ConnError
+	OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError
+	OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError
 }

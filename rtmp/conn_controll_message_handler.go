@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 
+	"github.com/pkg/errors"
 	amf "github.com/zhangpeihao/goamf"
 	"go.uber.org/zap"
 )
@@ -19,29 +20,35 @@ func NewConnControllMessageHandler(conn Conn) MessageHandler {
 	}
 }
 
-func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message) {
+func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message) ConnError {
 	switch m.TypeID() {
 	case MessageTypeIDSetChunkSize:
 		p, err := UnmarshalSetChunkSizeBinary(m.Payload())
 		if err != nil {
-			h.Error("failed to unmarshal SetChunkSize", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to unmarshal SetChunkSize"),
+				zap.Object("message", m),
+			)
 		}
-		h.conn.OnSetChunkSize(ctx, p)
+		return h.conn.OnSetChunkSize(ctx, p)
 	case MessageTypeIDAbortMessage:
 		p, err := UnmarshalAbortMessageBinary(m.Payload())
 		if err != nil {
-			h.Error("failed to unmarshal AbortMessage", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to unmarshal AbortMessage"),
+				zap.Object("message", m),
+			)
 		}
-		h.conn.OnAbortMessage(ctx, p)
+		return h.conn.OnAbortMessage(ctx, p)
 	case MessageTypeIDAcknowledgement:
 		p, err := UnmarshalAcknowledgementBinary(m.Payload())
 		if err != nil {
-			h.Error("failed to unmarshal Acknowledgement", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to unmarshal Acknowledgement"),
+				zap.Object("message", m),
+			)
 		}
-		h.conn.OnAcknowledgement(ctx, p)
+		return h.conn.OnAcknowledgement(ctx, p)
 	case MessageTypeIDUserControlMessages:
 		b := m.Payload()
 		eventType := EventType(binary.BigEndian.Uint16(b[:2]))
@@ -49,79 +56,121 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 		case EventTypeStreamBegin:
 			p, err := UnmarshalStreamBeginBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal StreamBegin", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal StreamBegin"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnStreamBegin(ctx, p)
+			return h.conn.OnStreamBegin(ctx, p)
 		case EventTypeStreamEOF:
 			p, err := UnmarshalStreamEOFBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal StreamEOF", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal StreamEOF"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnStreamEOF(ctx, p)
+			return h.conn.OnStreamEOF(ctx, p)
 		case EventTypeStreamDry:
 			p, err := UnmarshalStreamDryBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal StreamDry", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal StreamDry"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnStreamDry(ctx, p)
+			return h.conn.OnStreamDry(ctx, p)
 		case EventTypeSetBufferLength:
 			p, err := UnmarshalSetBufferLengthBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal SetBufferLength", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal SetBufferLength"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnSetBufferLength(ctx, p)
+			return h.conn.OnSetBufferLength(ctx, p)
 		case EventTypeStreamIsRecorded:
 			p, err := UnmarshalStreamIsRecordedBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal StreamIsRecorded", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal StreamIsRecorded"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnStreamIsRecorded(ctx, p)
+			return h.conn.OnStreamIsRecorded(ctx, p)
 		case EventTypePingRequest:
 			p, err := UnmarshalPingRequestBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal PingRequest", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal PingRequest"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPingRequest(ctx, p)
+			return h.conn.OnPingRequest(ctx, p)
 		case EventTypePingResponse:
 			p, err := UnmarshalPingResponseBinary(m.Payload())
 			if err != nil {
-				h.Error("failed to unmarshal PingResponse", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal PingResponse"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPingResponse(ctx, p)
+			return h.conn.OnPingResponse(ctx, p)
 		}
 	case MessageTypeIDWindowAcknowledgementSize:
 		p, err := UnmarshalWindowAcknowledgementSizeBinary(m.Payload())
 		if err != nil {
-			h.Error("failed to unmarshal WindowAcknowledgementSize", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to unmarshal WindowAcknowledgementSize"),
+				zap.Object("message", m),
+			)
 		}
-		h.conn.OnWindowAcknowledgementSize(ctx, p)
+		return h.conn.OnWindowAcknowledgementSize(ctx, p)
 	case MessageTypeIDSetPeerBandwidth:
 		p, err := UnmarshalSetPeerBandwidthBinary(m.Payload())
 		if err != nil {
-			h.Error("failed to unmarshal SetPeerBandwidth", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to unmarshal SetPeerBandwidth"),
+				zap.Object("message", m),
+			)
 		}
-		h.conn.OnSetPeerBandwidth(ctx, p)
+		return h.conn.OnSetPeerBandwidth(ctx, p)
 	case MessageTypeIDAudio:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDVideo:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDDataAMF3:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDSharedObjectAMF3:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDDataAMF0:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDSharedObjectAMF0:
 		// TODO
+		return NewConnWarnError(
+			errors.New("not implemented"),
+			zap.Object("message", m),
+		)
 	case MessageTypeIDCommandAMF0, MessageTypeIDCommandAMF3:
 		var name string
 		var encodingAMFType EncodingAMFType
@@ -136,31 +185,39 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 			name, err = amf.AMF3_ReadString(r)
 		}
 		if err != nil {
-			h.Error("failed to read command name", m, err)
-			return
+			return NewConnFatalError(
+				errors.Wrap(err, "failed to read command name"),
+				zap.Object("message", m),
+			)
 		}
 		switch name {
 		case "connect":
 			p, err := UnmarshalConnectBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Connect", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Connect"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnConnect(ctx, p)
+			return h.conn.OnConnect(ctx, p)
 		case "createStream":
 			p, err := UnmarshalCreateStreamBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal CreateStream", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal CreateStream"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnCreateStream(ctx, p)
+			return h.conn.OnCreateStream(ctx, p)
 		case "close":
 			p, err := UnmarshalCloseBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Close", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Close"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnClose(ctx, p)
+			return h.conn.OnClose(ctx, p)
 		case "_result", "_error":
 			var transactionID float64
 			if encodingAMFType == EncodingAMFTypeAMF0 {
@@ -169,135 +226,157 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				transactionID, err = amf.AMF3_ReadDouble(r)
 			}
 			if err != nil {
-				h.Error("failed to read transactionID", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to read transactionID"),
+					zap.Object("message", m),
+				)
 			}
 			if transactionID == 1 {
 				// connect response
 				if name == "_result" {
 					p, err := UnmarshalConnectResultBinary(b, encodingAMFType)
 					if err != nil {
-						h.Error("failed to unmarshal ConnectResult", m, err)
-						return
+						return NewConnFatalError(
+							errors.Wrap(err, "failed to unmarshal ConnectResult"),
+							zap.Object("message", m),
+						)
 					}
-					h.conn.OnConnectResult(ctx, p)
-					return
+					return h.conn.OnConnectResult(ctx, p)
 				}
 				p, err := UnmarshalConnectErrorBinary(b, encodingAMFType)
 				if err != nil {
-					h.Error("failed to unmarshal ConnectError", m, err)
-					return
+					return NewConnFatalError(
+						errors.Wrap(err, "failed to unmarshal ConnectError"),
+						zap.Object("message", m),
+					)
 				}
-				h.conn.OnConnectError(ctx, p)
-				return
+				return h.conn.OnConnectError(ctx, p)
 			}
 			// create stream response
 			if name == "_result" {
 				p, err := UnmarshalCreateStreamResultBinary(b, encodingAMFType)
 				if err != nil {
-					h.Error("failed to unmarshal CreateStreamResult", m, err)
-					return
+					return NewConnFatalError(
+						errors.Wrap(err, "failed to unmarshal CreateStreamResult"),
+						zap.Object("message", m),
+					)
 				}
-				h.conn.OnCreateStreamResult(ctx, p)
-				return
+				return h.conn.OnCreateStreamResult(ctx, p)
 			}
 			p, err := UnmarshalCreateStreamErrorBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal CreateStreamError", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal CreateStreamError"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnCreateStreamError(ctx, p)
-			return
+			return h.conn.OnCreateStreamError(ctx, p)
 		case "onStatus":
 			p, err := UnmarshalOnStatusBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal OnStatus", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal OnStatus"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnOnStatus(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnOnStatus(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play":
 			p, err := UnmarshalPlayBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Play", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Play"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPlay(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnPlay(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play2":
 			p, err := UnmarshalPlay2Binary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Play2", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Play2"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPlay2(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnPlay2(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "deleteStream":
 			p, err := UnmarshalDeleteStreamBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal DeleteStream", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal DeleteStream"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnDeleteStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnDeleteStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "closeStream":
 			p, err := UnmarshalCloseStreamBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal CloseStream", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal CloseStream"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnCloseStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnCloseStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveAudio":
 			p, err := UnmarshalReceiveAudioBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal ReceiveAudio", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal ReceiveAudio"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnReceiveAudio(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnReceiveAudio(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveVideo":
 			p, err := UnmarshalReceiveVideoBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal ReceiveVideo", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal ReceiveVideo"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnReceiveVideo(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnReceiveVideo(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "publish":
 			p, err := UnmarshalPublishBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Publish", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Publish"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPublish(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnPublish(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "seek":
 			p, err := UnmarshalSeekBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Seek", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Seek"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnSeek(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnSeek(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "pause":
 			p, err := UnmarshalPauseBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Pause", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Pause"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnPause(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.conn.OnPause(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		default:
-			h.Error("not implemented command", m, err)
 			p, err := UnmarshalCallBinary(b, encodingAMFType)
 			if err != nil {
-				h.Error("failed to unmarshal Call", m, err)
-				return
+				return NewConnFatalError(
+					errors.Wrap(err, "failed to unmarshal Call"),
+					zap.Object("message", m),
+				)
 			}
-			h.conn.OnCall(ctx, p)
+			return h.conn.OnCall(ctx, p)
 		}
 	case MessageTypeIDAggregate:
 		// TODO
-	}
-}
-
-func (h ConnControlMessageHandler) Error(msg string, m Message, err error) {
-	if err != nil {
-		h.conn.Logger().Error(
-			msg,
-			zap.Error(err),
+		return NewConnWarnError(
+			errors.New("not implemented"),
 			zap.Object("message", m),
 		)
 	}
+	return nil
 }

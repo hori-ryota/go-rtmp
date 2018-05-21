@@ -110,6 +110,22 @@ func (s *Server) Serve(l net.Listener) error {
 		go func() {
 			remoteAddr := nc.RemoteAddr()
 			defer func() {
+				if err := recover(); err != nil {
+					s.Logger().Error(
+						"panic: failed to conn.serve",
+						zap.Any("error", err),
+						zap.Stringer("remoteAddr", remoteAddr),
+					)
+				}
+				defer func() {
+					if err := recover(); err != nil {
+						s.Logger().Error(
+							"panic: failed to conn.close",
+							zap.Any("error", err),
+							zap.Stringer("remoteAddr", remoteAddr),
+						)
+					}
+				}()
 				if err := c.Close(); err != nil {
 					s.Logger().Error(
 						"failed to close conn",
@@ -122,11 +138,18 @@ func (s *Server) Serve(l net.Listener) error {
 				if isCanceledErr(err) {
 					return
 				}
-				s.Logger().Error(
-					"failed to conn.serve",
-					zap.Error(err),
-					zap.Stringer("remoteAddr", remoteAddr),
-				)
+				if e, ok := errors.Cause(err).(ConnError); ok {
+					s.Logger().Error(
+						"failed to conn.serve",
+						append(e.Fields(), zap.Error(err), zap.Stringer("remoteAddr", remoteAddr))...,
+					)
+				} else {
+					s.Logger().Error(
+						"failed to conn.serve",
+						zap.Error(err),
+						zap.Stringer("remoteAddr", remoteAddr),
+					)
+				}
 			}
 		}()
 	}

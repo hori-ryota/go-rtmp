@@ -33,8 +33,8 @@ type Conn interface {
 	NetStreamCommander
 	NetStreamCommandHandler
 
-	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse))
-	AddNetstreamCommandCallbacks(func(OnStatus))
+	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse) ConnError)
+	AddNetstreamCommandCallbacks(func(OnStatus) ConnError)
 	TransactionID() uint32
 
 	Logger() *zap.Logger
@@ -57,8 +57,8 @@ type defaultConn struct {
 
 	messagePubsub
 
-	createStreamCallbacks     map[uint32] /* transactionID */ func(CreateStreamResponse)
-	netStreamCommandCallbacks []func(onStatus OnStatus)
+	createStreamCallbacks     map[uint32] /* transactionID */ func(CreateStreamResponse) ConnError
+	netStreamCommandCallbacks []func(onStatus OnStatus) ConnError
 
 	onConnectValidators []func(
 		ctx context.Context,
@@ -91,7 +91,7 @@ func NewDefaultConn(
 		windowAcknowledgementSize: defaultWindowAcknowledgementSize,
 		messagePubsub:             NewDefaultMessagePubsub(),
 
-		createStreamCallbacks: map[uint32]func(CreateStreamResponse){},
+		createStreamCallbacks: map[uint32]func(CreateStreamResponse) ConnError{},
 
 		logger: logger,
 	}
@@ -131,7 +131,23 @@ func (conn *defaultConn) Serve() error {
 			)
 			continue
 		}
-		conn.HandleMessage(ctx, m)
+		if err := conn.HandleMessage(ctx, m); err != nil {
+			switch {
+			case IsConnWarnError(err):
+				conn.Logger().Warn(
+					"caught error",
+					append(err.Fields(), zap.Error(err))...,
+				)
+			case IsConnRejectedError(err):
+				conn.Logger().Info(
+					"caught rejected error",
+					append(err.Fields(), zap.Error(err))...,
+				)
+				return nil
+			default:
+				return err
+			}
+		}
 	}
 	return ctx.Err()
 }
@@ -169,19 +185,20 @@ func (conn *defaultConn) Context() context.Context {
 	return conn.ctx
 }
 
-func (conn *defaultConn) SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse)) {
+func (conn *defaultConn) SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse) ConnError) {
 	conn.createStreamCallbacks[transactionID] = f
 }
 
-func (conn *defaultConn) AddNetstreamCommandCallbacks(f func(OnStatus)) {
+func (conn *defaultConn) AddNetstreamCommandCallbacks(f func(OnStatus) ConnError) {
 	conn.netStreamCommandCallbacks = append(conn.netStreamCommandCallbacks, f)
 }
 
 func (conn *defaultConn) TransactionID() uint32 {
 	for i := uint32(2); true; i++ {
 		if _, ok := conn.createStreamCallbacks[i]; !ok {
-			conn.createStreamCallbacks[i] = func(_ CreateStreamResponse) {
+			conn.createStreamCallbacks[i] = func(_ CreateStreamResponse) ConnError {
 				// noop
+				return nil
 			}
 			return i
 		}

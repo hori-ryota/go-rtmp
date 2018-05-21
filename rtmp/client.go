@@ -68,11 +68,18 @@ func (c *Client) Connect(addr string) (Conn, error) {
 			if isCanceledErr(err) {
 				return
 			}
-			c.Logger().Error(
-				"failed to conn.serve",
-				zap.Error(err),
-				zap.Stringer("remoteAddr", remoteAddr),
-			)
+			if e, ok := errors.Cause(err).(ConnError); ok {
+				c.Logger().Error(
+					"failed to conn.serve",
+					append(e.Fields(), zap.Error(err), zap.Stringer("remoteAddr", remoteAddr))...,
+				)
+			} else {
+				c.Logger().Error(
+					"failed to conn.serve",
+					zap.Error(err),
+					zap.Stringer("remoteAddr", remoteAddr),
+				)
+			}
 		}
 	}()
 	return conn, ctx.Err()
