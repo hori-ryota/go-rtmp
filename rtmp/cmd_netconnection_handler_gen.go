@@ -4,16 +4,274 @@ package rtmp
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+
+	"go.uber.org/zap"
 )
 
-type NetConnectionCommandHandler interface {
+type ConnectHandler interface {
 	OnConnect(ctx context.Context, connect Connect) ConnError
+}
+type ConnectResultHandler interface {
 	OnConnectResult(ctx context.Context, connectResult ConnectResult) ConnError
+}
+type ConnectErrorHandler interface {
 	OnConnectError(ctx context.Context, connectError ConnectError) ConnError
+}
+type CallHandler interface {
 	OnCall(ctx context.Context, call Call) ConnError
+}
+type CallResponseHandler interface {
 	OnCallResponse(ctx context.Context, callResponse CallResponse) ConnError
+}
+type CloseHandler interface {
 	OnClose(ctx context.Context, close Close) ConnError
+}
+type CreateStreamHandler interface {
 	OnCreateStream(ctx context.Context, createStream CreateStream) ConnError
+}
+type CreateStreamResultHandler interface {
 	OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult) ConnError
+}
+type CreateStreamErrorHandler interface {
 	OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError) ConnError
+}
+type ConnectHandlerFunc func(ctx context.Context, connect Connect) ConnError
+type ConnectResultHandlerFunc func(ctx context.Context, connectResult ConnectResult) ConnError
+type ConnectErrorHandlerFunc func(ctx context.Context, connectError ConnectError) ConnError
+type CallHandlerFunc func(ctx context.Context, call Call) ConnError
+type CallResponseHandlerFunc func(ctx context.Context, callResponse CallResponse) ConnError
+type CloseHandlerFunc func(ctx context.Context, close Close) ConnError
+type CreateStreamHandlerFunc func(ctx context.Context, createStream CreateStream) ConnError
+type CreateStreamResultHandlerFunc func(ctx context.Context, createStreamResult CreateStreamResult) ConnError
+type CreateStreamErrorHandlerFunc func(ctx context.Context, createStreamError CreateStreamError) ConnError
+
+func (f ConnectHandlerFunc) OnConnect(ctx context.Context, connect Connect) ConnError {
+	return f(ctx, connect)
+}
+func (f ConnectResultHandlerFunc) OnConnectResult(ctx context.Context, connectResult ConnectResult) ConnError {
+	return f(ctx, connectResult)
+}
+func (f ConnectErrorHandlerFunc) OnConnectError(ctx context.Context, connectError ConnectError) ConnError {
+	return f(ctx, connectError)
+}
+func (f CallHandlerFunc) OnCall(ctx context.Context, call Call) ConnError {
+	return f(ctx, call)
+}
+func (f CallResponseHandlerFunc) OnCallResponse(ctx context.Context, callResponse CallResponse) ConnError {
+	return f(ctx, callResponse)
+}
+func (f CloseHandlerFunc) OnClose(ctx context.Context, close Close) ConnError {
+	return f(ctx, close)
+}
+func (f CreateStreamHandlerFunc) OnCreateStream(ctx context.Context, createStream CreateStream) ConnError {
+	return f(ctx, createStream)
+}
+func (f CreateStreamResultHandlerFunc) OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult) ConnError {
+	return f(ctx, createStreamResult)
+}
+func (f CreateStreamErrorHandlerFunc) OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError) ConnError {
+	return f(ctx, createStreamError)
+}
+
+type NetConnectionCommandHandler struct {
+	ConnectHandlers            []ConnectHandler
+	ConnectResultHandlers      []ConnectResultHandler
+	ConnectErrorHandlers       []ConnectErrorHandler
+	CallHandlers               []CallHandler
+	CallResponseHandlers       []CallResponseHandler
+	CloseHandlers              []CloseHandler
+	CreateStreamHandlers       []CreateStreamHandler
+	CreateStreamResultHandlers []CreateStreamResultHandler
+	CreateStreamErrorHandlers  []CreateStreamErrorHandler
+}
+
+func (h *NetConnectionCommandHandler) OnConnect(ctx context.Context, connect Connect) ConnError {
+	warnErrors := make([]error, 0, len(h.ConnectHandlers))
+	for i := range h.ConnectHandlers {
+		if err := h.ConnectHandlers[i].OnConnect(ctx, connect); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onConnect"),
+		zap.Object("connect", connect),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnConnectResult(ctx context.Context, connectResult ConnectResult) ConnError {
+	warnErrors := make([]error, 0, len(h.ConnectResultHandlers))
+	for i := range h.ConnectResultHandlers {
+		if err := h.ConnectResultHandlers[i].OnConnectResult(ctx, connectResult); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onConnectResult"),
+		zap.Object("connectResult", connectResult),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnConnectError(ctx context.Context, connectError ConnectError) ConnError {
+	warnErrors := make([]error, 0, len(h.ConnectErrorHandlers))
+	for i := range h.ConnectErrorHandlers {
+		if err := h.ConnectErrorHandlers[i].OnConnectError(ctx, connectError); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onConnectError"),
+		zap.Object("connectError", connectError),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnCall(ctx context.Context, call Call) ConnError {
+	warnErrors := make([]error, 0, len(h.CallHandlers))
+	for i := range h.CallHandlers {
+		if err := h.CallHandlers[i].OnCall(ctx, call); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCall"),
+		zap.Object("call", call),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnCallResponse(ctx context.Context, callResponse CallResponse) ConnError {
+	warnErrors := make([]error, 0, len(h.CallResponseHandlers))
+	for i := range h.CallResponseHandlers {
+		if err := h.CallResponseHandlers[i].OnCallResponse(ctx, callResponse); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCallResponse"),
+		zap.Object("callResponse", callResponse),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnClose(ctx context.Context, close Close) ConnError {
+	warnErrors := make([]error, 0, len(h.CloseHandlers))
+	for i := range h.CloseHandlers {
+		if err := h.CloseHandlers[i].OnClose(ctx, close); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onClose"),
+		zap.Object("close", close),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnCreateStream(ctx context.Context, createStream CreateStream) ConnError {
+	warnErrors := make([]error, 0, len(h.CreateStreamHandlers))
+	for i := range h.CreateStreamHandlers {
+		if err := h.CreateStreamHandlers[i].OnCreateStream(ctx, createStream); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCreateStream"),
+		zap.Object("createStream", createStream),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult) ConnError {
+	warnErrors := make([]error, 0, len(h.CreateStreamResultHandlers))
+	for i := range h.CreateStreamResultHandlers {
+		if err := h.CreateStreamResultHandlers[i].OnCreateStreamResult(ctx, createStreamResult); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCreateStreamResult"),
+		zap.Object("createStreamResult", createStreamResult),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetConnectionCommandHandler) OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError) ConnError {
+	warnErrors := make([]error, 0, len(h.CreateStreamErrorHandlers))
+	for i := range h.CreateStreamErrorHandlers {
+		if err := h.CreateStreamErrorHandlers[i].OnCreateStreamError(ctx, createStreamError); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCreateStreamError"),
+		zap.Object("createStreamError", createStreamError),
+		zap.Errors("errors", warnErrors),
+	)
 }

@@ -10,17 +10,23 @@ import (
 	"go.uber.org/zap"
 )
 
-type ConnControlMessageHandler struct {
-	conn Conn
+type ControlMessageHandler struct {
+	ProtocolControlEventHandler ProtocolControlEventHandler
+	UserControlEventHandler     UserControlEventHandler
+	NetConnectionCommandHandler NetConnectionCommandHandler
+	NetStreamCommandHandler     NetStreamCommandHandler
 }
 
-func NewConnControllMessageHandler(conn Conn) MessageHandler {
-	return &ConnControlMessageHandler{
-		conn: conn,
+func NewControlMessageHandler(conn Conn) MessageHandler {
+	return &ControlMessageHandler{
+		ProtocolControlEventHandler: conn.DefaultProtocolControlEventHandler(),
+		UserControlEventHandler:     conn.DefaultUserControlEventHandler(),
+		NetConnectionCommandHandler: conn.DefaultNetConnectionCommandHandler(),
+		NetStreamCommandHandler:     conn.DefaultNetStreamCommandHandler(),
 	}
 }
 
-func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message) ConnError {
+func (h *ControlMessageHandler) HandleMessage(ctx context.Context, m Message) ConnError {
 	switch m.TypeID() {
 	case MessageTypeIDSetChunkSize:
 		p, err := UnmarshalSetChunkSizeBinary(m.Payload())
@@ -30,7 +36,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				zap.Object("message", m),
 			)
 		}
-		return h.conn.OnSetChunkSize(ctx, p)
+		return h.ProtocolControlEventHandler.OnSetChunkSize(ctx, p)
 	case MessageTypeIDAbortMessage:
 		p, err := UnmarshalAbortMessageBinary(m.Payload())
 		if err != nil {
@@ -39,7 +45,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				zap.Object("message", m),
 			)
 		}
-		return h.conn.OnAbortMessage(ctx, p)
+		return h.ProtocolControlEventHandler.OnAbortMessage(ctx, p)
 	case MessageTypeIDAcknowledgement:
 		p, err := UnmarshalAcknowledgementBinary(m.Payload())
 		if err != nil {
@@ -48,7 +54,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				zap.Object("message", m),
 			)
 		}
-		return h.conn.OnAcknowledgement(ctx, p)
+		return h.ProtocolControlEventHandler.OnAcknowledgement(ctx, p)
 	case MessageTypeIDUserControlMessages:
 		b := m.Payload()
 		eventType := EventType(binary.BigEndian.Uint16(b[:2]))
@@ -61,7 +67,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnStreamBegin(ctx, p)
+			return h.UserControlEventHandler.OnStreamBegin(ctx, p)
 		case EventTypeStreamEOF:
 			p, err := UnmarshalStreamEOFBinary(m.Payload())
 			if err != nil {
@@ -70,7 +76,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnStreamEOF(ctx, p)
+			return h.UserControlEventHandler.OnStreamEOF(ctx, p)
 		case EventTypeStreamDry:
 			p, err := UnmarshalStreamDryBinary(m.Payload())
 			if err != nil {
@@ -79,7 +85,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnStreamDry(ctx, p)
+			return h.UserControlEventHandler.OnStreamDry(ctx, p)
 		case EventTypeSetBufferLength:
 			p, err := UnmarshalSetBufferLengthBinary(m.Payload())
 			if err != nil {
@@ -88,7 +94,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnSetBufferLength(ctx, p)
+			return h.UserControlEventHandler.OnSetBufferLength(ctx, p)
 		case EventTypeStreamIsRecorded:
 			p, err := UnmarshalStreamIsRecordedBinary(m.Payload())
 			if err != nil {
@@ -97,7 +103,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnStreamIsRecorded(ctx, p)
+			return h.UserControlEventHandler.OnStreamIsRecorded(ctx, p)
 		case EventTypePingRequest:
 			p, err := UnmarshalPingRequestBinary(m.Payload())
 			if err != nil {
@@ -106,7 +112,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPingRequest(ctx, p)
+			return h.UserControlEventHandler.OnPingRequest(ctx, p)
 		case EventTypePingResponse:
 			p, err := UnmarshalPingResponseBinary(m.Payload())
 			if err != nil {
@@ -115,7 +121,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPingResponse(ctx, p)
+			return h.UserControlEventHandler.OnPingResponse(ctx, p)
 		}
 	case MessageTypeIDWindowAcknowledgementSize:
 		p, err := UnmarshalWindowAcknowledgementSizeBinary(m.Payload())
@@ -125,7 +131,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				zap.Object("message", m),
 			)
 		}
-		return h.conn.OnWindowAcknowledgementSize(ctx, p)
+		return h.ProtocolControlEventHandler.OnWindowAcknowledgementSize(ctx, p)
 	case MessageTypeIDSetPeerBandwidth:
 		p, err := UnmarshalSetPeerBandwidthBinary(m.Payload())
 		if err != nil {
@@ -134,7 +140,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 				zap.Object("message", m),
 			)
 		}
-		return h.conn.OnSetPeerBandwidth(ctx, p)
+		return h.ProtocolControlEventHandler.OnSetPeerBandwidth(ctx, p)
 	case MessageTypeIDAudio:
 		// TODO
 		return NewConnWarnError(
@@ -199,7 +205,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnConnect(ctx, p)
+			return h.NetConnectionCommandHandler.OnConnect(ctx, p)
 		case "createStream":
 			p, err := UnmarshalCreateStreamBinary(b, encodingAMFType)
 			if err != nil {
@@ -208,7 +214,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnCreateStream(ctx, p)
+			return h.NetConnectionCommandHandler.OnCreateStream(ctx, p)
 		case "close":
 			p, err := UnmarshalCloseBinary(b, encodingAMFType)
 			if err != nil {
@@ -217,7 +223,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnClose(ctx, p)
+			return h.NetConnectionCommandHandler.OnClose(ctx, p)
 		case "_result", "_error":
 			var transactionID float64
 			if encodingAMFType == EncodingAMFTypeAMF0 {
@@ -241,7 +247,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 							zap.Object("message", m),
 						)
 					}
-					return h.conn.OnConnectResult(ctx, p)
+					return h.NetConnectionCommandHandler.OnConnectResult(ctx, p)
 				}
 				p, err := UnmarshalConnectErrorBinary(b, encodingAMFType)
 				if err != nil {
@@ -250,7 +256,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 						zap.Object("message", m),
 					)
 				}
-				return h.conn.OnConnectError(ctx, p)
+				return h.NetConnectionCommandHandler.OnConnectError(ctx, p)
 			}
 			// create stream response
 			if name == "_result" {
@@ -261,7 +267,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 						zap.Object("message", m),
 					)
 				}
-				return h.conn.OnCreateStreamResult(ctx, p)
+				return h.NetConnectionCommandHandler.OnCreateStreamResult(ctx, p)
 			}
 			p, err := UnmarshalCreateStreamErrorBinary(b, encodingAMFType)
 			if err != nil {
@@ -270,7 +276,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnCreateStreamError(ctx, p)
+			return h.NetConnectionCommandHandler.OnCreateStreamError(ctx, p)
 		case "onStatus":
 			p, err := UnmarshalOnStatusBinary(b, encodingAMFType)
 			if err != nil {
@@ -279,7 +285,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnOnStatus(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnOnStatus(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play":
 			p, err := UnmarshalPlayBinary(b, encodingAMFType)
 			if err != nil {
@@ -288,7 +294,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPlay(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnPlay(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "play2":
 			p, err := UnmarshalPlay2Binary(b, encodingAMFType)
 			if err != nil {
@@ -297,7 +303,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPlay2(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnPlay2(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "deleteStream":
 			p, err := UnmarshalDeleteStreamBinary(b, encodingAMFType)
 			if err != nil {
@@ -306,7 +312,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnDeleteStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnDeleteStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "closeStream":
 			p, err := UnmarshalCloseStreamBinary(b, encodingAMFType)
 			if err != nil {
@@ -315,7 +321,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnCloseStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnCloseStream(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveAudio":
 			p, err := UnmarshalReceiveAudioBinary(b, encodingAMFType)
 			if err != nil {
@@ -324,7 +330,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnReceiveAudio(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnReceiveAudio(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "receiveVideo":
 			p, err := UnmarshalReceiveVideoBinary(b, encodingAMFType)
 			if err != nil {
@@ -333,7 +339,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnReceiveVideo(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnReceiveVideo(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "publish":
 			p, err := UnmarshalPublishBinary(b, encodingAMFType)
 			if err != nil {
@@ -342,7 +348,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPublish(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnPublish(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "seek":
 			p, err := UnmarshalSeekBinary(b, encodingAMFType)
 			if err != nil {
@@ -351,7 +357,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnSeek(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnSeek(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		case "pause":
 			p, err := UnmarshalPauseBinary(b, encodingAMFType)
 			if err != nil {
@@ -360,7 +366,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnPause(ctx, m.ChunkStreamID(), m.StreamID(), p)
+			return h.NetStreamCommandHandler.OnPause(ctx, m.ChunkStreamID(), m.StreamID(), p)
 		default:
 			p, err := UnmarshalCallBinary(b, encodingAMFType)
 			if err != nil {
@@ -369,7 +375,7 @@ func (h ConnControlMessageHandler) HandleMessage(ctx context.Context, m Message)
 					zap.Object("message", m),
 				)
 			}
-			return h.conn.OnCall(ctx, p)
+			return h.NetConnectionCommandHandler.OnCall(ctx, p)
 		}
 	case MessageTypeIDAggregate:
 		// TODO
