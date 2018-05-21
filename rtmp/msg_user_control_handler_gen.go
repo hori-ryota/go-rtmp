@@ -4,14 +4,216 @@ package rtmp
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+
+	"go.uber.org/zap"
 )
 
-type UserControlEventHandler interface {
+type StreamBeginHandler interface {
 	OnStreamBegin(ctx context.Context, streamBegin StreamBegin) ConnError
+}
+type StreamEOFHandler interface {
 	OnStreamEOF(ctx context.Context, streamEOF StreamEOF) ConnError
+}
+type StreamDryHandler interface {
 	OnStreamDry(ctx context.Context, streamDry StreamDry) ConnError
+}
+type SetBufferLengthHandler interface {
 	OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength) ConnError
+}
+type StreamIsRecordedHandler interface {
 	OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError
+}
+type PingRequestHandler interface {
 	OnPingRequest(ctx context.Context, pingRequest PingRequest) ConnError
+}
+type PingResponseHandler interface {
 	OnPingResponse(ctx context.Context, pingResponse PingResponse) ConnError
+}
+type StreamBeginHandlerFunc func(ctx context.Context, streamBegin StreamBegin) ConnError
+type StreamEOFHandlerFunc func(ctx context.Context, streamEOF StreamEOF) ConnError
+type StreamDryHandlerFunc func(ctx context.Context, streamDry StreamDry) ConnError
+type SetBufferLengthHandlerFunc func(ctx context.Context, setBufferLength SetBufferLength) ConnError
+type StreamIsRecordedHandlerFunc func(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError
+type PingRequestHandlerFunc func(ctx context.Context, pingRequest PingRequest) ConnError
+type PingResponseHandlerFunc func(ctx context.Context, pingResponse PingResponse) ConnError
+
+func (f StreamBeginHandlerFunc) OnStreamBegin(ctx context.Context, streamBegin StreamBegin) ConnError {
+	return f(ctx, streamBegin)
+}
+func (f StreamEOFHandlerFunc) OnStreamEOF(ctx context.Context, streamEOF StreamEOF) ConnError {
+	return f(ctx, streamEOF)
+}
+func (f StreamDryHandlerFunc) OnStreamDry(ctx context.Context, streamDry StreamDry) ConnError {
+	return f(ctx, streamDry)
+}
+func (f SetBufferLengthHandlerFunc) OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength) ConnError {
+	return f(ctx, setBufferLength)
+}
+func (f StreamIsRecordedHandlerFunc) OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError {
+	return f(ctx, streamIsRecorded)
+}
+func (f PingRequestHandlerFunc) OnPingRequest(ctx context.Context, pingRequest PingRequest) ConnError {
+	return f(ctx, pingRequest)
+}
+func (f PingResponseHandlerFunc) OnPingResponse(ctx context.Context, pingResponse PingResponse) ConnError {
+	return f(ctx, pingResponse)
+}
+
+type UserControlEventHandler struct {
+	StreamBeginHandlers      []StreamBeginHandler
+	StreamEOFHandlers        []StreamEOFHandler
+	StreamDryHandlers        []StreamDryHandler
+	SetBufferLengthHandlers  []SetBufferLengthHandler
+	StreamIsRecordedHandlers []StreamIsRecordedHandler
+	PingRequestHandlers      []PingRequestHandler
+	PingResponseHandlers     []PingResponseHandler
+}
+
+func (h *UserControlEventHandler) OnStreamBegin(ctx context.Context, streamBegin StreamBegin) ConnError {
+	warnErrors := make([]error, 0, len(h.StreamBeginHandlers))
+	for i := range h.StreamBeginHandlers {
+		if err := h.StreamBeginHandlers[i].OnStreamBegin(ctx, streamBegin); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onStreamBegin"),
+		zap.Object("streamBegin", streamBegin),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnStreamEOF(ctx context.Context, streamEOF StreamEOF) ConnError {
+	warnErrors := make([]error, 0, len(h.StreamEOFHandlers))
+	for i := range h.StreamEOFHandlers {
+		if err := h.StreamEOFHandlers[i].OnStreamEOF(ctx, streamEOF); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onStreamEOF"),
+		zap.Object("streamEOF", streamEOF),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnStreamDry(ctx context.Context, streamDry StreamDry) ConnError {
+	warnErrors := make([]error, 0, len(h.StreamDryHandlers))
+	for i := range h.StreamDryHandlers {
+		if err := h.StreamDryHandlers[i].OnStreamDry(ctx, streamDry); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onStreamDry"),
+		zap.Object("streamDry", streamDry),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength) ConnError {
+	warnErrors := make([]error, 0, len(h.SetBufferLengthHandlers))
+	for i := range h.SetBufferLengthHandlers {
+		if err := h.SetBufferLengthHandlers[i].OnSetBufferLength(ctx, setBufferLength); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onSetBufferLength"),
+		zap.Object("setBufferLength", setBufferLength),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError {
+	warnErrors := make([]error, 0, len(h.StreamIsRecordedHandlers))
+	for i := range h.StreamIsRecordedHandlers {
+		if err := h.StreamIsRecordedHandlers[i].OnStreamIsRecorded(ctx, streamIsRecorded); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onStreamIsRecorded"),
+		zap.Object("streamIsRecorded", streamIsRecorded),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnPingRequest(ctx context.Context, pingRequest PingRequest) ConnError {
+	warnErrors := make([]error, 0, len(h.PingRequestHandlers))
+	for i := range h.PingRequestHandlers {
+		if err := h.PingRequestHandlers[i].OnPingRequest(ctx, pingRequest); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPingRequest"),
+		zap.Object("pingRequest", pingRequest),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *UserControlEventHandler) OnPingResponse(ctx context.Context, pingResponse PingResponse) ConnError {
+	warnErrors := make([]error, 0, len(h.PingResponseHandlers))
+	for i := range h.PingResponseHandlers {
+		if err := h.PingResponseHandlers[i].OnPingResponse(ctx, pingResponse); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPingResponse"),
+		zap.Object("pingResponse", pingResponse),
+		zap.Errors("errors", warnErrors),
+	)
 }

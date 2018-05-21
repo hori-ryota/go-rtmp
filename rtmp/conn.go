@@ -25,13 +25,13 @@ type Conn interface {
 	MessagePubsub
 
 	ProtocolController
-	ProtocolControlEventHandler
+	DefaultProtocolControlEventHandler() ProtocolControlEventHandler
 	UserController
-	UserControlEventHandler
+	DefaultUserControlEventHandler() UserControlEventHandler
 	NetConnectionCommander
-	NetConnectionCommandHandler
+	DefaultNetConnectionCommandHandler() NetConnectionCommandHandler
 	NetStreamCommander
-	NetStreamCommandHandler
+	DefaultNetStreamCommandHandler() NetStreamCommandHandler
 
 	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse) ConnError)
 	AddNetstreamCommandCallbacks(func(OnStatus) ConnError)

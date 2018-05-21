@@ -4,17 +4,323 @@ package rtmp
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+
+	"go.uber.org/zap"
 )
 
-type NetStreamCommandHandler interface {
+type OnStatusHandler interface {
 	OnOnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError
+}
+type PlayHandler interface {
 	OnPlay(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError
+}
+type Play2Handler interface {
 	OnPlay2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError
+}
+type DeleteStreamHandler interface {
 	OnDeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError
+}
+type CloseStreamHandler interface {
 	OnCloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError
+}
+type ReceiveAudioHandler interface {
 	OnReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError
+}
+type ReceiveVideoHandler interface {
 	OnReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError
+}
+type PublishHandler interface {
 	OnPublish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError
+}
+type SeekHandler interface {
 	OnSeek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError
+}
+type PauseHandler interface {
 	OnPause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError
+}
+type OnStatusHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError
+type PlayHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError
+type Play2HandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError
+type DeleteStreamHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError
+type CloseStreamHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError
+type ReceiveAudioHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError
+type ReceiveVideoHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError
+type PublishHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError
+type SeekHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError
+type PauseHandlerFunc func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError
+
+func (f OnStatusHandlerFunc) OnOnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, onStatus)
+}
+func (f PlayHandlerFunc) OnPlay(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, play)
+}
+func (f Play2HandlerFunc) OnPlay2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, play2)
+}
+func (f DeleteStreamHandlerFunc) OnDeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, deleteStream)
+}
+func (f CloseStreamHandlerFunc) OnCloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, closeStream)
+}
+func (f ReceiveAudioHandlerFunc) OnReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, receiveAudio)
+}
+func (f ReceiveVideoHandlerFunc) OnReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, receiveVideo)
+}
+func (f PublishHandlerFunc) OnPublish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, publish)
+}
+func (f SeekHandlerFunc) OnSeek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, seek)
+}
+func (f PauseHandlerFunc) OnPause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError {
+	return f(ctx, chunkStreamID, messageStreamID, pause)
+}
+
+type NetStreamCommandHandler struct {
+	OnStatusHandlers     []OnStatusHandler
+	PlayHandlers         []PlayHandler
+	Play2Handlers        []Play2Handler
+	DeleteStreamHandlers []DeleteStreamHandler
+	CloseStreamHandlers  []CloseStreamHandler
+	ReceiveAudioHandlers []ReceiveAudioHandler
+	ReceiveVideoHandlers []ReceiveVideoHandler
+	PublishHandlers      []PublishHandler
+	SeekHandlers         []SeekHandler
+	PauseHandlers        []PauseHandler
+}
+
+func (h *NetStreamCommandHandler) OnOnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError {
+	warnErrors := make([]error, 0, len(h.OnStatusHandlers))
+	for i := range h.OnStatusHandlers {
+		if err := h.OnStatusHandlers[i].OnOnStatus(ctx, chunkStreamID, messageStreamID, onStatus); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onOnStatus"),
+		zap.Object("onStatus", onStatus),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnPlay(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError {
+	warnErrors := make([]error, 0, len(h.PlayHandlers))
+	for i := range h.PlayHandlers {
+		if err := h.PlayHandlers[i].OnPlay(ctx, chunkStreamID, messageStreamID, play); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPlay"),
+		zap.Object("play", play),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnPlay2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError {
+	warnErrors := make([]error, 0, len(h.Play2Handlers))
+	for i := range h.Play2Handlers {
+		if err := h.Play2Handlers[i].OnPlay2(ctx, chunkStreamID, messageStreamID, play2); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPlay2"),
+		zap.Object("play2", play2),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnDeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError {
+	warnErrors := make([]error, 0, len(h.DeleteStreamHandlers))
+	for i := range h.DeleteStreamHandlers {
+		if err := h.DeleteStreamHandlers[i].OnDeleteStream(ctx, chunkStreamID, messageStreamID, deleteStream); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onDeleteStream"),
+		zap.Object("deleteStream", deleteStream),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnCloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError {
+	warnErrors := make([]error, 0, len(h.CloseStreamHandlers))
+	for i := range h.CloseStreamHandlers {
+		if err := h.CloseStreamHandlers[i].OnCloseStream(ctx, chunkStreamID, messageStreamID, closeStream); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onCloseStream"),
+		zap.Object("closeStream", closeStream),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError {
+	warnErrors := make([]error, 0, len(h.ReceiveAudioHandlers))
+	for i := range h.ReceiveAudioHandlers {
+		if err := h.ReceiveAudioHandlers[i].OnReceiveAudio(ctx, chunkStreamID, messageStreamID, receiveAudio); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onReceiveAudio"),
+		zap.Object("receiveAudio", receiveAudio),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError {
+	warnErrors := make([]error, 0, len(h.ReceiveVideoHandlers))
+	for i := range h.ReceiveVideoHandlers {
+		if err := h.ReceiveVideoHandlers[i].OnReceiveVideo(ctx, chunkStreamID, messageStreamID, receiveVideo); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onReceiveVideo"),
+		zap.Object("receiveVideo", receiveVideo),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnPublish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError {
+	warnErrors := make([]error, 0, len(h.PublishHandlers))
+	for i := range h.PublishHandlers {
+		if err := h.PublishHandlers[i].OnPublish(ctx, chunkStreamID, messageStreamID, publish); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPublish"),
+		zap.Object("publish", publish),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnSeek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError {
+	warnErrors := make([]error, 0, len(h.SeekHandlers))
+	for i := range h.SeekHandlers {
+		if err := h.SeekHandlers[i].OnSeek(ctx, chunkStreamID, messageStreamID, seek); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onSeek"),
+		zap.Object("seek", seek),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *NetStreamCommandHandler) OnPause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError {
+	warnErrors := make([]error, 0, len(h.PauseHandlers))
+	for i := range h.PauseHandlers {
+		if err := h.PauseHandlers[i].OnPause(ctx, chunkStreamID, messageStreamID, pause); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onPause"),
+		zap.Object("pause", pause),
+		zap.Uint32("chunkStreamID", chunkStreamID),
+		zap.Uint32("messageStreamID", messageStreamID),
+		zap.Errors("errors", warnErrors),
+	)
 }

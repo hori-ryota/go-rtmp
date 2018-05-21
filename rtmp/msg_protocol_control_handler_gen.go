@@ -4,12 +4,165 @@ package rtmp
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
-type ProtocolControlEventHandler interface {
+type SetChunkSizeHandler interface {
 	OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize) ConnError
+}
+type AbortMessageHandler interface {
 	OnAbortMessage(ctx context.Context, abortMessage AbortMessage) ConnError
+}
+type AcknowledgementHandler interface {
 	OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement) ConnError
+}
+type WindowAcknowledgementSizeHandler interface {
 	OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError
+}
+type SetPeerBandwidthHandler interface {
 	OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError
+}
+type SetChunkSizeHandlerFunc func(ctx context.Context, setChunkSize SetChunkSize) ConnError
+
+func (f SetChunkSizeHandlerFunc) OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize) ConnError {
+	return f(ctx, setChunkSize)
+}
+
+type AbortMessageHandlerFunc func(ctx context.Context, abortMessage AbortMessage) ConnError
+
+func (f AbortMessageHandlerFunc) OnAbortMessage(ctx context.Context, abortMessage AbortMessage) ConnError {
+	return f(ctx, abortMessage)
+}
+
+type AcknowledgementHandlerFunc func(ctx context.Context, acknowledgement Acknowledgement) ConnError
+
+func (f AcknowledgementHandlerFunc) OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement) ConnError {
+	return f(ctx, acknowledgement)
+}
+
+type WindowAcknowledgementSizeHandlerFunc func(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError
+
+func (f WindowAcknowledgementSizeHandlerFunc) OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError {
+	return f(ctx, windowAcknowledgementSize)
+}
+
+type SetPeerBandwidthHandlerFunc func(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError
+
+func (f SetPeerBandwidthHandlerFunc) OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError {
+	return f(ctx, setPeerBandwidth)
+}
+
+type ProtocolControlEventHandler struct {
+	SetChunkSizeHandlers              []SetChunkSizeHandler
+	AbortMessageHandlers              []AbortMessageHandler
+	AcknowledgementHandlers           []AcknowledgementHandler
+	WindowAcknowledgementSizeHandlers []WindowAcknowledgementSizeHandler
+	SetPeerBandwidthHandlers          []SetPeerBandwidthHandler
+}
+
+func (h *ProtocolControlEventHandler) OnSetChunkSize(ctx context.Context, setChunkSize SetChunkSize) ConnError {
+	warnErrors := make([]error, 0, len(h.SetChunkSizeHandlers))
+	for i := range h.SetChunkSizeHandlers {
+		if err := h.SetChunkSizeHandlers[i].OnSetChunkSize(ctx, setChunkSize); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onSetChunkSize"),
+		zap.Object("setChunkSize", setChunkSize),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *ProtocolControlEventHandler) OnAbortMessage(ctx context.Context, abortMessage AbortMessage) ConnError {
+	warnErrors := make([]error, 0, len(h.AbortMessageHandlers))
+	for i := range h.AbortMessageHandlers {
+		if err := h.AbortMessageHandlers[i].OnAbortMessage(ctx, abortMessage); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onAbortMessage"),
+		zap.Object("abortMessage", abortMessage),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *ProtocolControlEventHandler) OnAcknowledgement(ctx context.Context, acknowledgement Acknowledgement) ConnError {
+	warnErrors := make([]error, 0, len(h.AcknowledgementHandlers))
+	for i := range h.AcknowledgementHandlers {
+		if err := h.AcknowledgementHandlers[i].OnAcknowledgement(ctx, acknowledgement); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onAcknowledgement"),
+		zap.Object("acknowledgement", acknowledgement),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *ProtocolControlEventHandler) OnWindowAcknowledgementSize(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError {
+	warnErrors := make([]error, 0, len(h.WindowAcknowledgementSizeHandlers))
+	for i := range h.WindowAcknowledgementSizeHandlers {
+		if err := h.WindowAcknowledgementSizeHandlers[i].OnWindowAcknowledgementSize(ctx, windowAcknowledgementSize); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onWindowAcknowledgementSize"),
+		zap.Object("windowAcknowledgementSize", windowAcknowledgementSize),
+		zap.Errors("errors", warnErrors),
+	)
+}
+
+func (h *ProtocolControlEventHandler) OnSetPeerBandwidth(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError {
+	warnErrors := make([]error, 0, len(h.SetPeerBandwidthHandlers))
+	for i := range h.SetPeerBandwidthHandlers {
+		if err := h.SetPeerBandwidthHandlers[i].OnSetPeerBandwidth(ctx, setPeerBandwidth); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
+	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("caught error onSetPeerBandwidth"),
+		zap.Object("setPeerBandwidth", setPeerBandwidth),
+		zap.Errors("errors", warnErrors),
+	)
 }
