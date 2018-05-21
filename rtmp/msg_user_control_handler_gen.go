@@ -7,11 +7,11 @@ import (
 )
 
 type UserControlEventHandler interface {
-	OnStreamBegin(ctx context.Context, streamBegin StreamBegin)
-	OnStreamEOF(ctx context.Context, streamEOF StreamEOF)
-	OnStreamDry(ctx context.Context, streamDry StreamDry)
-	OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength)
-	OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded)
-	OnPingRequest(ctx context.Context, pingRequest PingRequest)
-	OnPingResponse(ctx context.Context, pingResponse PingResponse)
+	OnStreamBegin(ctx context.Context, streamBegin StreamBegin) ConnError
+	OnStreamEOF(ctx context.Context, streamEOF StreamEOF) ConnError
+	OnStreamDry(ctx context.Context, streamDry StreamDry) ConnError
+	OnSetBufferLength(ctx context.Context, setBufferLength SetBufferLength) ConnError
+	OnStreamIsRecorded(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError
+	OnPingRequest(ctx context.Context, pingRequest PingRequest) ConnError
+	OnPingResponse(ctx context.Context, pingResponse PingResponse) ConnError
 }

@@ -2,6 +2,9 @@ package rtmp
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type MessagePubsub interface {
@@ -22,10 +25,24 @@ func NewDefaultMessagePubsub(hs ...MessageHandler) MessagePubsub {
 	return s
 }
 
-func (s *defaultMessagePubsub) HandleMessage(ctx context.Context, m Message) {
+func (s *defaultMessagePubsub) HandleMessage(ctx context.Context, m Message) ConnError {
+	warnErrors := make([]error, 0, len(s.messageHandlers))
 	for _, h := range s.messageHandlers {
-		h.HandleMessage(ctx, m)
+		if err := h.HandleMessage(ctx, m); err != nil {
+			if IsConnWarnError(err) {
+				warnErrors = append(warnErrors, err)
+			} else {
+				return err
+			}
+		}
 	}
+	if len(warnErrors) == 0 {
+		return nil
+	}
+	return NewConnWarnError(
+		errors.New("error on defaultMessagePubsub.HandleMessage"),
+		zap.Errors("handler errors", warnErrors),
+	)
 }
 
 func (s *defaultMessagePubsub) AppendMessageHandler(hs ...MessageHandler) {

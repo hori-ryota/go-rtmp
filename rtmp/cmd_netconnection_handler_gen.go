@@ -7,13 +7,13 @@ import (
 )
 
 type NetConnectionCommandHandler interface {
-	OnConnect(ctx context.Context, connect Connect)
-	OnConnectResult(ctx context.Context, connectResult ConnectResult)
-	OnConnectError(ctx context.Context, connectError ConnectError)
-	OnCall(ctx context.Context, call Call)
-	OnCallResponse(ctx context.Context, callResponse CallResponse)
-	OnClose(ctx context.Context, close Close)
-	OnCreateStream(ctx context.Context, createStream CreateStream)
-	OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult)
-	OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError)
+	OnConnect(ctx context.Context, connect Connect) ConnError
+	OnConnectResult(ctx context.Context, connectResult ConnectResult) ConnError
+	OnConnectError(ctx context.Context, connectError ConnectError) ConnError
+	OnCall(ctx context.Context, call Call) ConnError
+	OnCallResponse(ctx context.Context, callResponse CallResponse) ConnError
+	OnClose(ctx context.Context, close Close) ConnError
+	OnCreateStream(ctx context.Context, createStream CreateStream) ConnError
+	OnCreateStreamResult(ctx context.Context, createStreamResult CreateStreamResult) ConnError
+	OnCreateStreamError(ctx context.Context, createStreamError CreateStreamError) ConnError
 }

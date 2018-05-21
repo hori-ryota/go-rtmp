@@ -7,14 +7,14 @@ import (
 )
 
 type NetStreamCommandHandler interface {
-	OnOnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus)
-	OnPlay(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play)
-	OnPlay2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2)
-	OnDeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream)
-	OnCloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream)
-	OnReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio)
-	OnReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo)
-	OnPublish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish)
-	OnSeek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek)
-	OnPause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause)
+	OnOnStatus(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError
+	OnPlay(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError
+	OnPlay2(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError
+	OnDeleteStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError
+	OnCloseStream(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError
+	OnReceiveAudio(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError
+	OnReceiveVideo(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError
+	OnPublish(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError
+	OnSeek(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError
+	OnPause(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError
 }

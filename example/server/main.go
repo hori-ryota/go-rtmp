@@ -54,7 +54,7 @@ func NewMessageLoggingHandler(
 func (h MessageLoggingHandler) HandleMessage(
 	ctx context.Context,
 	m rtmp.Message,
-) {
+) ConnError {
 	h.logger.Info(
 		"message received",
 		zap.Object("message", m),
@@ -92,4 +92,5 @@ func (h MessageLoggingHandler) HandleMessage(
 			zap.Any("value", v)
 		}
 	}
+	return nil
 }
