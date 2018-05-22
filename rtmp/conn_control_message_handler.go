@@ -17,7 +17,7 @@ type ControlMessageHandler struct {
 	NetStreamCommandHandler     NetStreamCommandHandler
 }
 
-func NewControlMessageHandler(conn Conn) MessageHandler {
+func NewControlMessageHandler(conn Conn) *ControlMessageHandler {
 	return &ControlMessageHandler{
 		ProtocolControlEventHandler: conn.DefaultProtocolControlEventHandler(),
 		UserControlEventHandler:     conn.DefaultUserControlEventHandler(),
