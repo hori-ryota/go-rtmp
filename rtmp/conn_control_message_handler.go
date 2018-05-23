@@ -141,42 +141,6 @@ func (h *ControlMessageHandler) HandleMessage(ctx context.Context, m Message) Co
 			)
 		}
 		return h.ProtocolControlEventHandler.OnSetPeerBandwidth(ctx, p)
-	case MessageTypeIDAudio:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
-	case MessageTypeIDVideo:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
-	case MessageTypeIDDataAMF3:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
-	case MessageTypeIDSharedObjectAMF3:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
-	case MessageTypeIDDataAMF0:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
-	case MessageTypeIDSharedObjectAMF0:
-		// TODO
-		return NewConnWarnError(
-			errors.New("not implemented"),
-			zap.Object("message", m),
-		)
 	case MessageTypeIDCommandAMF0, MessageTypeIDCommandAMF3:
 		var name string
 		var encodingAMFType EncodingAMFType
