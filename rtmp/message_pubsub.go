@@ -2,6 +2,7 @@ package rtmp
 
 import (
 	"context"
+	"sync"
 
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
@@ -9,32 +10,40 @@ import (
 
 type MessagePubsub interface {
 	MessageHandler
-	AppendMessageHandler(...MessageHandler)
+	AddMessageHandler(id string, h MessageHandler)
+	RemoveMessageHandler(id string)
 }
 
 type messagePubsub MessagePubsub
 
 type defaultMessagePubsub struct {
-	messageHandlers []MessageHandler
+	messageHandlers sync.Map
+	handlersLen     uint
 }
 
-func NewDefaultMessagePubsub(hs ...MessageHandler) MessagePubsub {
-	s := &defaultMessagePubsub{
-		messageHandlers: hs,
+func NewDefaultMessagePubsub() MessagePubsub {
+	return &defaultMessagePubsub{
+		messageHandlers: sync.Map{},
 	}
-	return s
 }
 
 func (s *defaultMessagePubsub) HandleMessage(ctx context.Context, m Message) ConnError {
-	warnErrors := make([]error, 0, len(s.messageHandlers))
-	for _, h := range s.messageHandlers {
+	warnErrors := make([]error, 0, int(s.handlersLen))
+	var fatalError ConnError
+	s.messageHandlers.Range(func(_ interface{}, v interface{}) bool {
+		h := v.(MessageHandler)
 		if err := h.HandleMessage(ctx, m); err != nil {
 			if IsConnWarnError(err) {
 				warnErrors = append(warnErrors, err)
 			} else {
-				return err
+				fatalError = err
+				return false
 			}
 		}
+		return true
+	})
+	if fatalError != nil {
+		return fatalError
 	}
 	if len(warnErrors) == 0 {
 		return nil
@@ -45,6 +54,12 @@ func (s *defaultMessagePubsub) HandleMessage(ctx context.Context, m Message) Con
 	)
 }
 
-func (s *defaultMessagePubsub) AppendMessageHandler(hs ...MessageHandler) {
-	s.messageHandlers = append(s.messageHandlers, hs...)
+func (s *defaultMessagePubsub) AddMessageHandler(id string, h MessageHandler) {
+	s.messageHandlers.Store(id, h)
+	s.handlersLen++
+}
+
+func (s *defaultMessagePubsub) RemoveMessageHandler(id string) {
+	s.messageHandlers.Delete(id)
+	s.handlersLen--
 }
