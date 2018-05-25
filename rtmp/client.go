@@ -34,8 +34,12 @@ func (c *Client) Close() error {
 	return nil
 }
 
-func (c *Client) Connect(addr string) (Conn, error) {
-	ctx := c.ctx
+func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
+	if dd, ok := c.ctx.Deadline(); ok {
+		var cancel func()
+		ctx, cancel = context.WithDeadline(ctx, dd)
+		defer cancel()
+	}
 	var d net.Dialer
 	nc, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
@@ -46,7 +50,7 @@ func (c *Client) Connect(addr string) (Conn, error) {
 	}
 
 	conn := NewDefaultConn(
-		ctx,
+		c.ctx,
 		nc,
 		false,
 		c.Logger(),
@@ -82,7 +86,7 @@ func (c *Client) Connect(addr string) (Conn, error) {
 			}
 		}
 	}()
-	return conn, ctx.Err()
+	return conn, nil
 }
 
 func (c *Client) Logger() *zap.Logger {
