@@ -2,6 +2,7 @@ package rtmp
 
 import (
 	"context"
+	"io"
 	"net"
 	"time"
 
@@ -136,6 +137,9 @@ func (s *Server) Serve(l net.Listener) error {
 			}()
 			if err := c.Serve(); err != nil {
 				if isCanceledErr(err) {
+					return
+				}
+				if errors.Cause(err) == io.EOF {
 					return
 				}
 				if e, ok := errors.Cause(err).(ConnError); ok {
