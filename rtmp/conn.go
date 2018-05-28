@@ -114,6 +114,9 @@ func (conn *defaultConn) Serve() error {
 	if err := conn.handshaker.Handshake(
 		ctx, r, w,
 	); err != nil {
+		if errors.Cause(err) == io.EOF {
+			return nil
+		}
 		return errors.Wrap(err, "failed to handshake")
 	}
 
