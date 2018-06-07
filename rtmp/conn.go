@@ -114,7 +114,7 @@ func (conn *defaultConn) Serve() error {
 	if err := conn.handshaker.Handshake(
 		ctx, r, w,
 	); err != nil {
-		if errors.Cause(err) == io.EOF {
+		if errors.Cause(err) == io.EOF || isDone(ctx) {
 			return nil
 		}
 		return errors.Wrap(err, "failed to handshake")
@@ -125,7 +125,7 @@ func (conn *defaultConn) Serve() error {
 	for !isDone(ctx) {
 		m, err := r.ReadMessage()
 		if err != nil {
-			if errors.Cause(err) == io.EOF {
+			if errors.Cause(err) == io.EOF || isDone(ctx) {
 				return nil
 			}
 			conn.Logger().Error(
