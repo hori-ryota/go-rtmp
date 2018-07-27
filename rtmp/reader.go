@@ -22,14 +22,14 @@ type Reader interface {
 type reader Reader
 
 type defaultReader struct {
-	conn                         Conn
-	r                            *bufio.Reader
-	chunkSize                    uint32
-	chunkStreams                 map[ /* chunkStreamID */ uint32]chunkStream
-	bandwidthLimitType           BandwidthLimitType
-	acknowledgementWindowSize    uint32
-	preAcknowledgementWindowSize uint32
-	sequenceNumber               uint32
+	conn                        Conn
+	r                           *bufio.Reader
+	chunkSize                   uint32
+	chunkStreams                map[ /* chunkStreamID */ uint32]chunkStream
+	bandwidthLimitType          BandwidthLimitType
+	acknowledgementWindowSize   uint32
+	preAcknowledgementThreshold uint32
+	sequenceNumber              uint32
 }
 
 func NewDefaultReader(conn Conn, r io.Reader) Reader {
@@ -164,7 +164,7 @@ func (r *defaultReader) sendAcknowledgementIfNeeded() {
 	if r.acknowledgementWindowSize == 0 {
 		return
 	}
-	if r.sequenceNumber >= r.preAcknowledgementWindowSize+r.acknowledgementWindowSize {
+	if r.sequenceNumber >= r.preAcknowledgementThreshold+r.acknowledgementWindowSize {
 		if err := r.conn.Acknowledgement(context.TODO(), r.sequenceNumber); err != nil {
 			r.conn.Logger().Error(
 				"failed to send Acknowledgement",
@@ -172,7 +172,7 @@ func (r *defaultReader) sendAcknowledgementIfNeeded() {
 			)
 			return
 		}
-		r.preAcknowledgementWindowSize = r.acknowledgementWindowSize
+		r.preAcknowledgementThreshold += r.acknowledgementWindowSize
 	}
 }
 
