@@ -36,6 +36,8 @@ type Conn interface {
 	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse) ConnError)
 	AddNetstreamCommandCallbacks(func(OnStatus) ConnError)
 	TransactionID() uint32
+
+	Logger() *zap.Logger
 }
 
 type defaultConn struct {
@@ -204,4 +206,8 @@ func (conn *defaultConn) TransactionID() uint32 {
 	}
 	// dummy
 	return 0
+}
+
+func (conn *defaultConn) Logger() *zap.Logger {
+	return conn.logger
 }
