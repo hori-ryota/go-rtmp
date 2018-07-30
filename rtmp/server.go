@@ -20,24 +20,17 @@ type Server struct {
 	logger *zap.Logger
 }
 
-var defaultLogger *zap.Logger = func() *zap.Logger {
-	log, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	return log
-}()
-
 func NewServer(
 	ctx context.Context,
+	logger *zap.Logger,
 	connOps ...ConnOption,
 ) *Server {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Server{
 		ctx:         ctx,
 		cancelFunc:  cancel,
+		logger:      logger,
 		connOptions: connOps,
-		logger:      defaultLogger,
 	}
 }
 
@@ -62,7 +55,7 @@ func (s *Server) Serve(l net.Listener) error {
 	ctx := s.ctx
 	defer func() {
 		if err := l.Close(); err != nil {
-			s.Logger().Error(
+			s.logger.Error(
 				"failed to close listener",
 				zap.Error(err),
 				zap.Stringer("addr", l.Addr()),
@@ -74,7 +67,7 @@ func (s *Server) Serve(l net.Listener) error {
 	for !isDone(ctx) {
 		nc, err := l.Accept()
 		if err != nil {
-			if isCanceledErr(err) {
+			if isCanceledErr(err) || isDone(ctx) {
 				return nil
 			}
 			if ne, ok := errors.Cause(err).(net.Error); ok && ne.Temporary() {
@@ -86,7 +79,7 @@ func (s *Server) Serve(l net.Listener) error {
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				s.Logger().Error(
+				s.logger.Error(
 					"Accept error",
 					zap.Error(err),
 					zap.Stringer("retrying in", tempDelay),
@@ -104,7 +97,7 @@ func (s *Server) Serve(l net.Listener) error {
 			ctx,
 			nc,
 			true,
-			s.Logger(),
+			s.logger,
 			s.connOptions...,
 		)
 
@@ -112,7 +105,7 @@ func (s *Server) Serve(l net.Listener) error {
 			remoteAddr := nc.RemoteAddr()
 			defer func() {
 				if err := recover(); err != nil {
-					s.Logger().Error(
+					s.logger.Error(
 						"panic: failed to conn.serve",
 						zap.Any("error", err),
 						zap.Stringer("remoteAddr", remoteAddr),
@@ -120,7 +113,7 @@ func (s *Server) Serve(l net.Listener) error {
 				}
 				defer func() {
 					if err := recover(); err != nil {
-						s.Logger().Error(
+						s.logger.Error(
 							"panic: failed to conn.close",
 							zap.Any("error", err),
 							zap.Stringer("remoteAddr", remoteAddr),
@@ -128,7 +121,7 @@ func (s *Server) Serve(l net.Listener) error {
 					}
 				}()
 				if err := c.Close(); err != nil {
-					s.Logger().Error(
+					s.logger.Error(
 						"failed to close conn",
 						zap.Error(err),
 						zap.Stringer("remoteAddr", remoteAddr),
@@ -136,19 +129,18 @@ func (s *Server) Serve(l net.Listener) error {
 				}
 			}()
 			if err := c.Serve(); err != nil {
-				if isCanceledErr(err) {
-					return
-				}
-				if errors.Cause(err) == io.EOF {
+				if isCanceledErr(err) ||
+					errors.Cause(err) == io.EOF ||
+					isDone(ctx) {
 					return
 				}
 				if e, ok := errors.Cause(err).(ConnError); ok {
-					s.Logger().Error(
+					s.logger.Error(
 						"failed to conn.serve",
 						append(e.Fields(), zap.Error(err), zap.Stringer("remoteAddr", remoteAddr))...,
 					)
 				} else {
-					s.Logger().Error(
+					s.logger.Error(
 						"failed to conn.serve",
 						zap.Error(err),
 						zap.Stringer("remoteAddr", remoteAddr),
@@ -160,15 +152,8 @@ func (s *Server) Serve(l net.Listener) error {
 	return ctx.Err()
 }
 
-func (s *Server) Logger() *zap.Logger {
-	if s.logger != nil {
-		return s.logger
-	}
-	return defaultLogger
-}
-
-func ListenAndServe(ctx context.Context, addr string, connOps ...ConnOption) error {
-	s := NewServer(ctx, connOps...)
+func ListenAndServe(ctx context.Context, addr string, logger *zap.Logger, connOps ...ConnOption) error {
+	s := NewServer(ctx, logger, connOps...)
 	s.Addr = addr
 	return s.ListenAndServe()
 }

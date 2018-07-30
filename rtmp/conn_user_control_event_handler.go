@@ -11,7 +11,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 	return UserControlEventHandler{
 		StreamBeginHandlers: []StreamBeginHandler{
 			StreamBeginHandlerFunc(func(ctx context.Context, streamBegin StreamBegin) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnStreamBegin",
 					zap.Object("streamBegin", streamBegin),
 				)
@@ -21,7 +21,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		StreamEOFHandlers: []StreamEOFHandler{
 			StreamEOFHandlerFunc(func(ctx context.Context, streamEOF StreamEOF) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnStreamEOF",
 					zap.Object("streamEOF", streamEOF),
 				)
@@ -31,7 +31,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		StreamDryHandlers: []StreamDryHandler{
 			StreamDryHandlerFunc(func(ctx context.Context, streamDry StreamDry) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnStreamDry",
 					zap.Object("streamDry", streamDry),
 				)
@@ -41,7 +41,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		SetBufferLengthHandlers: []SetBufferLengthHandler{
 			SetBufferLengthHandlerFunc(func(ctx context.Context, setBufferLength SetBufferLength) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnSetBufferLength",
 					zap.Object("setBufferLength", setBufferLength),
 				)
@@ -51,7 +51,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		StreamIsRecordedHandlers: []StreamIsRecordedHandler{
 			StreamIsRecordedHandlerFunc(func(ctx context.Context, streamIsRecorded StreamIsRecorded) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnStreamIsRecorded",
 					zap.Object("streamIsRecorded", streamIsRecorded),
 				)
@@ -61,7 +61,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		PingRequestHandlers: []PingRequestHandler{
 			PingRequestHandlerFunc(func(ctx context.Context, pingRequest PingRequest) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnPingRequest",
 					zap.Object("pingRequest", pingRequest),
 				)
@@ -76,7 +76,7 @@ func (conn *defaultConn) DefaultUserControlEventHandler() UserControlEventHandle
 
 		PingResponseHandlers: []PingResponseHandler{
 			PingResponseHandlerFunc(func(ctx context.Context, pingResponse PingResponse) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnPingResponse",
 					zap.Object("pingResponse", pingResponse),
 				)

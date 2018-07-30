@@ -27,8 +27,7 @@ func (conn *defaultConn) Connect(ctx context.Context, commandObject map[string]i
 		0,
 		b,
 	)
-	conn.Logger().Info("Connect", zap.Object("connect", p))
-	conn.Logger().Info("Connect", zap.Object("message", m))
+	conn.logger.Info("Connect", zap.Object("message", m), zap.Object("connect", p))
 	_, err = conn.Writer().WriteMessage(m)
 	if err != nil {
 		return errors.Wrap(err, "failed to WriteMessage")

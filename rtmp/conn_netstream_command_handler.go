@@ -11,7 +11,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 	return NetStreamCommandHandler{
 		OnStatusHandlers: []OnStatusHandler{
 			OnStatusHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, onStatus OnStatus) ConnError {
-				conn.Logger().Info(
+				conn.logger.Info(
 					"OnOnStatus",
 					zap.Object("onStatus", onStatus),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -40,7 +40,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		PlayHandlers: []PlayHandler{
 			PlayHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play Play) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnPlay",
 					zap.Object("play", play),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -52,7 +52,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		Play2Handlers: []Play2Handler{
 			Play2HandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, play2 Play2) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnPlay2",
 					zap.Object("play2", play2),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -64,7 +64,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		DeleteStreamHandlers: []DeleteStreamHandler{
 			DeleteStreamHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, deleteStream DeleteStream) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnDeleteStream",
 					zap.Object("deleteStream", deleteStream),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -76,7 +76,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		CloseStreamHandlers: []CloseStreamHandler{
 			CloseStreamHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, closeStream CloseStream) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnCloseStream",
 					zap.Object("closeStream", closeStream),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -88,7 +88,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		ReceiveAudioHandlers: []ReceiveAudioHandler{
 			ReceiveAudioHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveAudio ReceiveAudio) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnReceiveAudio",
 					zap.Object("receiveAudio", receiveAudio),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -100,7 +100,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		ReceiveVideoHandlers: []ReceiveVideoHandler{
 			ReceiveVideoHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, receiveVideo ReceiveVideo) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnReceiveVideo",
 					zap.Object("receiveVideo", receiveVideo),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -112,7 +112,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		PublishHandlers: []PublishHandler{
 			PublishHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, publish Publish) ConnError {
-				conn.Logger().Info(
+				conn.logger.Info(
 					"OnPublish",
 					zap.Object("publish", publish),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -163,7 +163,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		SeekHandlers: []SeekHandler{
 			SeekHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, seek Seek) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnSeek",
 					zap.Object("seek", seek),
 					zap.Uint32("chunkStreamID", chunkStreamID),
@@ -175,7 +175,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 
 		PauseHandlers: []PauseHandler{
 			PauseHandlerFunc(func(ctx context.Context, chunkStreamID uint32, messageStreamID uint32, pause Pause) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnPause",
 					zap.Object("pause", pause),
 					zap.Uint32("chunkStreamID", chunkStreamID),

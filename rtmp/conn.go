@@ -36,8 +36,6 @@ type Conn interface {
 	SetCreateStreamCallbacks(transactionID uint32, f func(CreateStreamResponse) ConnError)
 	AddNetstreamCommandCallbacks(func(OnStatus) ConnError)
 	TransactionID() uint32
-
-	Logger() *zap.Logger
 }
 
 type defaultConn struct {
@@ -80,6 +78,8 @@ func NewDefaultConn(
 	logger *zap.Logger,
 	connOps ...ConnOption,
 ) Conn {
+	logger = logger.With(zap.Bool("isServer", isServer))
+	logger = logger.With(zap.Stringer("remoteAddr", nc.RemoteAddr()))
 	ctx, cancel := context.WithCancel(ctx)
 	conn := &defaultConn{
 		ctx:                       ctx,
@@ -95,7 +95,7 @@ func NewDefaultConn(
 
 		logger: logger,
 	}
-	conn.reader = NewDefaultReader(conn, nc)
+	conn.reader = NewDefaultReader(conn, nc, conn.logger)
 	conn.writer = NewDefaultWriter(conn, nc)
 	ops := &connOptions{}
 	for _, o := range connOps {
@@ -128,7 +128,7 @@ func (conn *defaultConn) Serve() error {
 			if errors.Cause(err) == io.EOF || isDone(ctx) {
 				return nil
 			}
-			conn.Logger().Error(
+			conn.logger.Error(
 				"failed to read message",
 				zap.Error(err),
 			)
@@ -137,12 +137,12 @@ func (conn *defaultConn) Serve() error {
 		if err := conn.HandleMessage(ctx, m); err != nil {
 			switch {
 			case IsConnWarnError(err):
-				conn.Logger().Warn(
+				conn.logger.Warn(
 					"caught error",
 					append(err.Fields(), zap.Error(err))...,
 				)
 			case IsConnRejectedError(err):
-				conn.Logger().Info(
+				conn.logger.Info(
 					"caught rejected error",
 					append(err.Fields(), zap.Error(err))...,
 				)
@@ -174,10 +174,6 @@ func (conn *defaultConn) Writer() Writer {
 
 func (conn *defaultConn) SetWriter(w Writer) {
 	conn.writer = w
-}
-
-func (conn *defaultConn) Logger() *zap.Logger {
-	return conn.logger
 }
 
 func (conn *defaultConn) Timestamp() uint32 {

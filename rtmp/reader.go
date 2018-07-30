@@ -30,9 +30,11 @@ type defaultReader struct {
 	acknowledgementWindowSize   uint32
 	preAcknowledgementThreshold uint32
 	sequenceNumber              uint32
+
+	logger *zap.Logger
 }
 
-func NewDefaultReader(conn Conn, r io.Reader) Reader {
+func NewDefaultReader(conn Conn, r io.Reader, logger *zap.Logger) Reader {
 	return &defaultReader{
 		conn:         conn,
 		r:            bufio.NewReader(r),
@@ -166,7 +168,7 @@ func (r *defaultReader) sendAcknowledgementIfNeeded() {
 	}
 	if r.sequenceNumber >= r.preAcknowledgementThreshold+r.acknowledgementWindowSize {
 		if err := r.conn.Acknowledgement(context.TODO(), r.sequenceNumber); err != nil {
-			r.conn.Logger().Error(
+			r.logger.Error(
 				"failed to send Acknowledgement",
 				zap.Error(err),
 			)
