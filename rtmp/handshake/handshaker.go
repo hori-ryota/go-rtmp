@@ -25,7 +25,7 @@ var DefaultClientHandshaker = NewDefaultHandshaker(false)
 
 func NewDefaultHandshaker(
 	isServer bool,
-) Handshaker {
+) defaultHandshaker {
 	return defaultHandshaker{
 		isServer: isServer,
 	}
@@ -97,7 +97,7 @@ func (y defaultHandshaker) Send0And1(
 	}
 
 	// send 1
-	c1, err = GenerateChunk1(0)
+	c1, err = GenerateChunk1(time)
 	if err != nil {
 		return c0, c1, errors.Wrap(err, "failed to init Chunk1")
 	}
