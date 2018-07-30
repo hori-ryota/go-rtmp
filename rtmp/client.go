@@ -18,14 +18,15 @@ type Client struct {
 
 func NewClient(
 	ctx context.Context,
+	logger *zap.Logger,
 	connOps ...ConnOption,
 ) *Client {
 	ctx, cancel := context.WithCancel(ctx)
 	return &Client{
 		ctx:         ctx,
 		cancelFunc:  cancel,
+		logger:      logger,
 		connOptions: connOps,
-		logger:      defaultLogger,
 	}
 }
 
@@ -53,7 +54,7 @@ func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
 		c.ctx,
 		nc,
 		false,
-		c.Logger(),
+		c.logger,
 		c.connOptions...,
 	)
 
@@ -61,7 +62,7 @@ func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
 		remoteAddr := nc.RemoteAddr()
 		defer func() {
 			if err := conn.Close(); err != nil {
-				c.Logger().Error(
+				c.logger.Error(
 					"failed to close conn",
 					zap.Error(err),
 					zap.Stringer("remoteAddr", remoteAddr),
@@ -73,12 +74,12 @@ func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
 				return
 			}
 			if e, ok := errors.Cause(err).(ConnError); ok {
-				c.Logger().Error(
+				c.logger.Error(
 					"failed to conn.serve",
 					append(e.Fields(), zap.Error(err), zap.Stringer("remoteAddr", remoteAddr))...,
 				)
 			} else {
-				c.Logger().Error(
+				c.logger.Error(
 					"failed to conn.serve",
 					zap.Error(err),
 					zap.Stringer("remoteAddr", remoteAddr),
@@ -87,11 +88,4 @@ func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
 		}
 	}()
 	return conn, nil
-}
-
-func (c *Client) Logger() *zap.Logger {
-	if c.logger != nil {
-		return c.logger
-	}
-	return defaultLogger
 }

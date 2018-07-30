@@ -11,7 +11,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 	return NetConnectionCommandHandler{
 		ConnectHandlers: []ConnectHandler{
 			ConnectHandlerFunc(func(ctx context.Context, connect Connect) ConnError {
-				conn.Logger().Info(
+				conn.logger.Info(
 					"OnConnect",
 					zap.Object("connect", connect),
 				)
@@ -59,7 +59,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		ConnectResultHandlers: []ConnectResultHandler{
 			ConnectResultHandlerFunc(func(ctx context.Context, connectResult ConnectResult) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnConnectResult",
 					zap.Object("connectResult", connectResult),
 				)
@@ -69,7 +69,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		ConnectErrorHandlers: []ConnectErrorHandler{
 			ConnectErrorHandlerFunc(func(ctx context.Context, connectError ConnectError) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnConnectError",
 					zap.Object("connectError", connectError),
 				)
@@ -79,7 +79,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		CallHandlers: []CallHandler{
 			CallHandlerFunc(func(ctx context.Context, call Call) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnCall",
 					zap.Object("call", call),
 				)
@@ -89,7 +89,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		CallResponseHandlers: []CallResponseHandler{
 			CallResponseHandlerFunc(func(ctx context.Context, callResponse CallResponse) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnCallResponse",
 					zap.Object("callResponse", callResponse),
 				)
@@ -99,7 +99,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		CloseHandlers: []CloseHandler{
 			CloseHandlerFunc(func(ctx context.Context, close Close) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnClose",
 					zap.Object("close", close),
 				)
@@ -122,7 +122,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		CreateStreamResultHandlers: []CreateStreamResultHandler{
 			CreateStreamResultHandlerFunc(func(ctx context.Context, createStreamResult CreateStreamResult) ConnError {
-				conn.Logger().Info(
+				conn.logger.Info(
 					"OnCreateStreamResult",
 					zap.Object("createStreamResult", createStreamResult),
 				)
@@ -143,7 +143,7 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 
 		CreateStreamErrorHandlers: []CreateStreamErrorHandler{
 			CreateStreamErrorHandlerFunc(func(ctx context.Context, createStreamError CreateStreamError) ConnError {
-				conn.Logger().Info(
+				conn.logger.Info(
 					"OnCreateStreamError",
 					zap.Object("createStreamError", createStreamError),
 				)

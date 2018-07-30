@@ -10,7 +10,7 @@ func (conn *defaultConn) DefaultProtocolControlEventHandler() ProtocolControlEve
 	return ProtocolControlEventHandler{
 		SetChunkSizeHandlers: []SetChunkSizeHandler{
 			SetChunkSizeHandlerFunc(func(ctx context.Context, setChunkSize SetChunkSize) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnSetChunkSize",
 					zap.Object("setChunkSize", setChunkSize),
 				)
@@ -21,7 +21,7 @@ func (conn *defaultConn) DefaultProtocolControlEventHandler() ProtocolControlEve
 
 		AbortMessageHandlers: []AbortMessageHandler{
 			AbortMessageHandlerFunc(func(ctx context.Context, abortMessage AbortMessage) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnAbortMessage",
 					zap.Object("abortMessage", abortMessage),
 				)
@@ -32,7 +32,7 @@ func (conn *defaultConn) DefaultProtocolControlEventHandler() ProtocolControlEve
 
 		AcknowledgementHandlers: []AcknowledgementHandler{
 			AcknowledgementHandlerFunc(func(ctx context.Context, acknowledgement Acknowledgement) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnAcknowledgement",
 					zap.Object("acknowledgement", acknowledgement),
 				)
@@ -42,7 +42,7 @@ func (conn *defaultConn) DefaultProtocolControlEventHandler() ProtocolControlEve
 
 		WindowAcknowledgementSizeHandlers: []WindowAcknowledgementSizeHandler{
 			WindowAcknowledgementSizeHandlerFunc(func(ctx context.Context, windowAcknowledgementSize WindowAcknowledgementSize) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"OnWindowAcknowledgementSize",
 					zap.Object("windowAcknowledgementSize", windowAcknowledgementSize),
 				)
@@ -53,7 +53,7 @@ func (conn *defaultConn) DefaultProtocolControlEventHandler() ProtocolControlEve
 
 		SetPeerBandwidthHandlers: []SetPeerBandwidthHandler{
 			SetPeerBandwidthHandlerFunc(func(ctx context.Context, setPeerBandwidth SetPeerBandwidth) ConnError {
-				conn.Logger().Debug(
+				conn.logger.Debug(
 					"invoke OnSetPeerBandwidth",
 					zap.Object("setPeerBandwidth", setPeerBandwidth),
 				)

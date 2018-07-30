@@ -2,12 +2,9 @@ package rtmp
 
 import (
 	"context"
-
-	"go.uber.org/zap"
 )
 
 type connOptions struct {
-	logger           *zap.Logger
 	connInitializers []func(Conn)
 
 	onConnectValidators []func(
@@ -22,12 +19,6 @@ type connOptions struct {
 }
 
 type ConnOption func(*connOptions)
-
-func WithLogger(logger *zap.Logger) ConnOption {
-	return func(o *connOptions) {
-		o.logger = logger
-	}
-}
 
 func WithConnInitializers(connInitializers ...func(Conn)) ConnOption {
 	return func(o *connOptions) {
@@ -48,9 +39,6 @@ func WithOnPublishValidators(onPublishValidators ...func(ctx context.Context, pu
 }
 
 func (o connOptions) Apply(c *defaultConn) {
-	if o.logger != nil {
-		c.logger = o.logger
-	}
 	if len(o.onConnectValidators) > 0 {
 		c.onConnectValidators = o.onConnectValidators
 	}
