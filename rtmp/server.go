@@ -67,7 +67,7 @@ func (s *Server) Serve(l net.Listener) error {
 	for !isDone(ctx) {
 		nc, err := l.Accept()
 		if err != nil {
-			if isCanceledErr(err) {
+			if isCanceledErr(err) || isDone(ctx) {
 				return nil
 			}
 			if ne, ok := errors.Cause(err).(net.Error); ok && ne.Temporary() {
@@ -129,10 +129,9 @@ func (s *Server) Serve(l net.Listener) error {
 				}
 			}()
 			if err := c.Serve(); err != nil {
-				if isCanceledErr(err) {
-					return
-				}
-				if errors.Cause(err) == io.EOF {
+				if isCanceledErr(err) ||
+					errors.Cause(err) == io.EOF ||
+					isDone(ctx) {
 					return
 				}
 				if e, ok := errors.Cause(err).(ConnError); ok {

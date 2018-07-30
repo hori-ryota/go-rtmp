@@ -2,6 +2,7 @@ package rtmp
 
 import (
 	"context"
+	"io"
 	"net"
 
 	"github.com/pkg/errors"
@@ -70,7 +71,9 @@ func (c *Client) Connect(ctx context.Context, addr string) (Conn, error) {
 			}
 		}()
 		if err := conn.Serve(); err != nil {
-			if isCanceledErr(err) {
+			if isCanceledErr(err) ||
+				errors.Cause(err) == io.EOF ||
+				isDone(ctx) {
 				return
 			}
 			if e, ok := errors.Cause(err).(ConnError); ok {
