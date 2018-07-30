@@ -133,6 +133,7 @@ func (conn *defaultConn) DefaultNetStreamCommandHandler() NetStreamCommandHandle
 						}
 						return NewConnRejectedError(
 							errors.New("publish request is rejected"),
+							zap.Object("publish", publish),
 							zap.Any("publishError", onPublishError),
 						)
 					}
