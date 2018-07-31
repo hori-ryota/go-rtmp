@@ -32,12 +32,12 @@ func NewDefaultHandshaker(
 }
 
 func (y defaultHandshaker) Handshake(ctx context.Context, r io.Reader, w io.Writer) error {
-	g, ctx := errgroup.WithContext(ctx)
+	g, cctx := errgroup.WithContext(ctx)
 
 	var received1, sent1 Chunk1
 
 	g.Go(func() (err error) {
-		_, received1, err = y.Receive0And1(ctx, r)
+		_, received1, err = y.Receive0And1(cctx, r)
 		return err
 	})
 
@@ -48,11 +48,12 @@ func (y defaultHandshaker) Handshake(ctx context.Context, r io.Reader, w io.Writ
 		if err != nil {
 			return err
 		}
+		g, cctx = errgroup.WithContext(ctx)
 	}
 
 	time := uint32(0)
 	g.Go(func() (err error) {
-		_, sent1, err = y.Send0And1(ctx, w, ServerRTMPVersion, time)
+		_, sent1, err = y.Send0And1(cctx, w, ServerRTMPVersion, time)
 		return err
 	})
 
@@ -60,9 +61,10 @@ func (y defaultHandshaker) Handshake(ctx context.Context, r io.Reader, w io.Writ
 	if err != nil {
 		return err
 	}
+	g, cctx = errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		received2, err := y.Receive2(ctx, r)
+		received2, err := y.Receive2(cctx, r)
 		if err != nil {
 			return errors.Wrap(err, "failed to receive Chunk2")
 		}
@@ -74,7 +76,7 @@ func (y defaultHandshaker) Handshake(ctx context.Context, r io.Reader, w io.Writ
 
 	g.Go(func() error {
 		time2 := maxUint32(time, received1.Time())
-		return y.Send2(ctx, w, received1, time2)
+		return y.Send2(cctx, w, received1, time2)
 	})
 
 	return g.Wait()
