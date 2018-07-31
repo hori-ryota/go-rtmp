@@ -34,12 +34,19 @@ type defaultReader struct {
 	logger *zap.Logger
 }
 
-func NewDefaultReader(conn Conn, r io.Reader, logger *zap.Logger) Reader {
+func NewDefaultReader(
+	conn Conn,
+	r io.Reader,
+	acknowledgementWindowSize uint32,
+	logger *zap.Logger,
+) Reader {
 	return &defaultReader{
-		conn:         conn,
-		r:            bufio.NewReader(r),
-		chunkSize:    128, /* default RTMP Chunk size */
-		chunkStreams: map[uint32]chunkStream{},
+		conn:                      conn,
+		r:                         bufio.NewReader(r),
+		chunkSize:                 128, /* default RTMP Chunk size */
+		chunkStreams:              map[uint32]chunkStream{},
+		acknowledgementWindowSize: acknowledgementWindowSize,
+		logger: logger,
 	}
 }
 
@@ -67,9 +74,7 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 			if uint32(len(cs.buffer)) < cs.messageLength {
 				cs.buffer = make([]byte, cs.messageLength)
 			}
-			if y.acknowledgementWindowSize > 0 {
-				y.sequenceNumber += 11
-			}
+			y.sequenceNumber += 11
 		case ChunkMessageHeaderType1:
 			cs.messageLength = mh.MessageLength()
 			cs.messageTypeID = mh.MessageTypeID()
@@ -78,30 +83,24 @@ func (y *defaultReader) ReadMessage() (Message, error) {
 			if uint32(len(cs.buffer)) < cs.messageLength {
 				cs.buffer = make([]byte, cs.messageLength)
 			}
-			if y.acknowledgementWindowSize > 0 {
-				y.sequenceNumber += 7
-			}
+			y.sequenceNumber += 7
 		case ChunkMessageHeaderType2:
 			cs.timestampDelta = mh.TimestampDelta()
 			cs.timestamp += cs.timestampDelta
-			if y.acknowledgementWindowSize > 0 {
-				y.sequenceNumber += 3
-			}
+			y.sequenceNumber += 3
 		case ChunkMessageHeaderType3:
 			if cs.buffered == 0 {
 				cs.timestamp += cs.timestampDelta
 			}
 		}
 
-		if y.acknowledgementWindowSize > 0 {
-			switch h.BasicHeader().(type) {
-			case ChunkBasicHeader1B:
-				y.sequenceNumber += 1
-			case ChunkBasicHeader2B:
-				y.sequenceNumber += 2
-			default:
-				y.sequenceNumber += 3
-			}
+		switch h.BasicHeader().(type) {
+		case ChunkBasicHeader1B:
+			y.sequenceNumber += 1
+		case ChunkBasicHeader2B:
+			y.sequenceNumber += 2
+		default:
+			y.sequenceNumber += 3
 		}
 
 		if cs.messageLength == 0 {
@@ -163,9 +162,6 @@ func (r *defaultReader) SetAcknowledgementWindowSize(acknowledgementWindowSize u
 }
 
 func (r *defaultReader) sendAcknowledgementIfNeeded() {
-	if r.acknowledgementWindowSize == 0 {
-		return
-	}
 	if r.sequenceNumber >= r.preAcknowledgementThreshold+r.acknowledgementWindowSize {
 		if err := r.conn.Acknowledgement(context.TODO(), r.sequenceNumber); err != nil {
 			r.logger.Error(
