@@ -100,6 +100,9 @@ func (conn *defaultConn) WindowAcknowledgementSize(ctx context.Context, acknowle
 	if err := conn.Writer().Flush(); err != nil {
 		return errors.Wrap(err, "failed to Flush Writer")
 	}
+
+	conn.windowAcknowledgementSize = acknowledgementWindowSize
+	conn.reader.SetAcknowledgementWindowSize(acknowledgementWindowSize)
 	return nil
 }
 
