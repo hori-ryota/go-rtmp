@@ -98,6 +98,7 @@ func NewDefaultConn(
 		logger: logger,
 	}
 	conn.reader = NewDefaultReader(conn, nc, conn.logger)
+	conn.reader.SetAcknowledgementWindowSize(conn.windowAcknowledgementSize)
 	conn.writer = NewDefaultWriter(conn, nc)
 	ops := &connOptions{}
 	for _, o := range connOps {
