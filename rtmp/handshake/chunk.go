@@ -51,8 +51,8 @@ func (c chunk2) Validate(chunk1 Chunk1) error {
 	if !bytes.Equal(c.randomEcho, chunk1.RandomBytes()) {
 		return errors.Errorf(
 			"randomEcho is not %x: got %x",
-			c.randomEcho,
 			chunk1.RandomBytes(),
+			c.randomEcho,
 		)
 	}
 	return nil
