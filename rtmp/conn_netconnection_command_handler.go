@@ -47,7 +47,11 @@ func (conn *defaultConn) DefaultNetConnectionCommandHandler() NetConnectionComma
 						zap.Object("connect", connect),
 					)
 				}
-				if err := conn.ConnectResult(ctx, nil, nil); err != nil {
+				if err := conn.ConnectResult(ctx, nil, map[string]interface{}{
+					"code":        "NetConnection.Connect.Success",
+					"level":       "status",
+					"description": "Connection Succeeded",
+				}); err != nil {
 					return NewConnFatalError(
 						errors.Wrap(err, "failed to ConnectResult"),
 						zap.Object("connect", connect),
