@@ -55,7 +55,7 @@ func (w *defaultWriter) WriteMessage(m Message) (n int, err error) {
 	messageLength := uint32(len(p))
 	timestampDelta := m.Timestamp() - cs.timestamp
 	switch {
-	case !isNotFirst || cs.messageStreamID != m.StreamID(): // type 0
+	case !isNotFirst || cs.messageStreamID != m.StreamID() || m.Timestamp() < cs.timestamp: // type 0
 		cs.messageLength = messageLength
 		cs.messageTypeID = m.TypeID()
 		cs.messageStreamID = m.StreamID()
