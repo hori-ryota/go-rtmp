@@ -46,7 +46,7 @@ func NewDefaultReader(
 		chunkSize:                 128, /* default RTMP Chunk size */
 		chunkStreams:              map[uint32]chunkStream{},
 		acknowledgementWindowSize: acknowledgementWindowSize,
-		logger: logger,
+		logger:                    logger,
 	}
 }
 
